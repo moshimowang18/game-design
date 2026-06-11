@@ -1,0 +1,12 @@
+fileFormatVersion: 2
+guid: 5fa99790cfe74da42a82a466df9c9a27
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures:
+  - _Leaves_NoiseTexture2: {fileID: 2800000, guid: e0595e1df515fa64fa99e3017d4ace24,
+      type: 3}
+  - _GustNoiseMap: {fileID: 2800000, guid: 95228cb87bc1fcf4b8b99b626dcf102c, type: 3}
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

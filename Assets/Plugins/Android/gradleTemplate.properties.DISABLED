@@ -1,0 +1,5 @@
+org.gradle.jvmargs=-Xmx4096m -Dhttps.protocols=TLSv1.2,TLSv1.3
+systemProp.https.protocols=TLSv1.2,TLSv1.3
+org.gradle.parallel=true
+unityStreamingAssets=**STREAMING_ASSETS**
+**ADDITIONAL_PROPERTIES**

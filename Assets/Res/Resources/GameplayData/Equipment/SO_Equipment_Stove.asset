@@ -1,0 +1,158 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 483c41e20b521ff43abf5b6ee1729552, type: 3}
+  m_Name: SO_Equipment_Stove
+  m_EditorClassIdentifier: Assembly-CSharp::SO_Equipment
+  equipmentId: 3
+  displayName: "\u571F\u7076"
+  icon: {fileID: 21300000, guid: 7892abdcd603e7047bf62b3cef6346e4, type: 3}
+  category: 2
+  unlockUI: 255
+  _OVERRIDEBONUS: "\u89E3\u9501\u53A8\u5E08"
+  levels:
+  - level: 0
+    scenePrefab: {fileID: 7410613086748224139, guid: 8e6bb1c8de2040e48a76dd09836d596c,
+      type: 3}
+    upgradeCost: 0
+    buildDuration: 0
+    feePerDay: 0
+    capacity: 0
+    requiredEquipment: {fileID: 0}
+    requiredEquipmentLevel: 0
+    levelDisplayName: "\u571F\u7076"
+    levelIcon: {fileID: 0}
+    bonuses: []
+    carrierPrefab: {fileID: 8400592946614827256, guid: b3ca458dc475ee647a894c8c77ddb396,
+      type: 3}
+  - level: 1
+    scenePrefab: {fileID: 7739020851787630919, guid: ae6c04afdb8d10840852957a79d45f69,
+      type: 3}
+    upgradeCost: 800
+    buildDuration: 10
+    feePerDay: 120
+    capacity: 0
+    requiredEquipment: {fileID: 0}
+    requiredEquipmentLevel: 0
+    levelDisplayName: "\u571F\u7076"
+    levelIcon: {fileID: 0}
+    bonuses: []
+    carrierPrefab: {fileID: 8400592946614827256, guid: b3ca458dc475ee647a894c8c77ddb396,
+      type: 3}
+  - level: 2
+    scenePrefab: {fileID: 7739020851787630919, guid: ae6c04afdb8d10840852957a79d45f69,
+      type: 3}
+    upgradeCost: 800
+    buildDuration: 20
+    feePerDay: 153
+    capacity: 0
+    requiredEquipment: {fileID: 11400000, guid: 14d4458e5a2a9a041a8dfc858b139800,
+      type: 2}
+    requiredEquipmentLevel: 1
+    levelDisplayName: "\u571F\u7076"
+    levelIcon: {fileID: 0}
+    bonuses:
+    - type: 0
+      scope: 2
+      value: 10
+      productFilter: {fileID: 11400000, guid: 6951737ea4ec6094882692262fbc6a07, type: 2}
+    - type: 0
+      scope: 2
+      value: 10
+      productFilter: {fileID: 11400000, guid: 36795514df005514ba9315ac4224fe49, type: 2}
+    - type: 0
+      scope: 2
+      value: 10
+      productFilter: {fileID: 11400000, guid: 59e3cc0901010934bae77e4feba69dfb, type: 2}
+    - type: 0
+      scope: 2
+      value: 10
+      productFilter: {fileID: 11400000, guid: 70552c16db30ed944a078d7be82c5a5a, type: 2}
+    - type: 0
+      scope: 2
+      value: 10
+      productFilter: {fileID: 11400000, guid: 001c5063b55045a45b0dc998d2cdc627, type: 2}
+    carrierPrefab: {fileID: 8400592946614827256, guid: b3ca458dc475ee647a894c8c77ddb396,
+      type: 3}
+  - level: 3
+    scenePrefab: {fileID: 7739020851787630919, guid: ae6c04afdb8d10840852957a79d45f69,
+      type: 3}
+    upgradeCost: 1600
+    buildDuration: 30
+    feePerDay: 187
+    capacity: 0
+    requiredEquipment: {fileID: 11400000, guid: 14d4458e5a2a9a041a8dfc858b139800,
+      type: 2}
+    requiredEquipmentLevel: 1
+    levelDisplayName: "\u571F\u7076"
+    levelIcon: {fileID: 0}
+    bonuses:
+    - type: 0
+      scope: 2
+      value: 20
+      productFilter: {fileID: 11400000, guid: 6951737ea4ec6094882692262fbc6a07, type: 2}
+    - type: 0
+      scope: 2
+      value: 20
+      productFilter: {fileID: 11400000, guid: 36795514df005514ba9315ac4224fe49, type: 2}
+    - type: 0
+      scope: 2
+      value: 20
+      productFilter: {fileID: 11400000, guid: 59e3cc0901010934bae77e4feba69dfb, type: 2}
+    - type: 0
+      scope: 2
+      value: 20
+      productFilter: {fileID: 11400000, guid: 70552c16db30ed944a078d7be82c5a5a, type: 2}
+    - type: 0
+      scope: 2
+      value: 20
+      productFilter: {fileID: 11400000, guid: 001c5063b55045a45b0dc998d2cdc627, type: 2}
+    carrierPrefab: {fileID: 8400592946614827256, guid: b3ca458dc475ee647a894c8c77ddb396,
+      type: 3}
+  - level: 4
+    scenePrefab: {fileID: 7739020851787630919, guid: ae6c04afdb8d10840852957a79d45f69,
+      type: 3}
+    upgradeCost: 2400
+    buildDuration: 60
+    feePerDay: 220
+    capacity: 0
+    requiredEquipment: {fileID: 11400000, guid: 14d4458e5a2a9a041a8dfc858b139800,
+      type: 2}
+    requiredEquipmentLevel: 1
+    levelDisplayName: "\u571F\u7076"
+    levelIcon: {fileID: 0}
+    bonuses:
+    - type: 0
+      scope: 2
+      value: 30
+      productFilter: {fileID: 11400000, guid: 6951737ea4ec6094882692262fbc6a07, type: 2}
+    - type: 0
+      scope: 2
+      value: 30
+      productFilter: {fileID: 11400000, guid: 36795514df005514ba9315ac4224fe49, type: 2}
+    - type: 0
+      scope: 2
+      value: 30
+      productFilter: {fileID: 11400000, guid: 59e3cc0901010934bae77e4feba69dfb, type: 2}
+    - type: 0
+      scope: 2
+      value: 30
+      productFilter: {fileID: 11400000, guid: 70552c16db30ed944a078d7be82c5a5a, type: 2}
+    - type: 0
+      scope: 2
+      value: 30
+      productFilter: {fileID: 11400000, guid: 001c5063b55045a45b0dc998d2cdc627, type: 2}
+    carrierPrefab: {fileID: 8400592946614827256, guid: b3ca458dc475ee647a894c8c77ddb396,
+      type: 3}
+  thisEquipentUnlockOnly: 0
+  producedProduct: {fileID: 0}
+  baseProductionTime: 0
+  perLevelSpeedPercent: 1

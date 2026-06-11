@@ -1,0 +1,18 @@
+[
+  {
+    "configName": "customerRefreshTime",
+    "value": 7
+  },
+  {
+    "configName": "chefCookTime",
+    "value": 10
+  },
+  {
+    "configName": "customerEatTime",
+    "value": 10
+  },
+  {
+    "configName": "tableCleanTime",
+    "value": 7
+  }
+]

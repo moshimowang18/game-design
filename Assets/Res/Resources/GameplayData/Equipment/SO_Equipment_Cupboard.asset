@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 483c41e20b521ff43abf5b6ee1729552, type: 3}
+  m_Name: SO_Equipment_Cupboard
+  m_EditorClassIdentifier: Assembly-CSharp::SO_Equipment
+  equipmentId: 4
+  displayName: "\u67DC\u5B50"
+  icon: {fileID: 21300000, guid: f732a11ccb9b17742bbb06a1fb6a4bed, type: 3}
+  category: 2
+  unlockUI: 255
+  _OVERRIDEBONUS: 
+  levels:
+  - level: 0
+    scenePrefab: {fileID: 5794007218624550636, guid: 1096b602f778b4c489030e8fff10189d,
+      type: 3}
+    upgradeCost: 90
+    buildDuration: 25
+    feePerDay: 0
+    capacity: 0
+    requiredEquipment: {fileID: 0}
+    requiredEquipmentLevel: 1
+    levelDisplayName: "\u67DC\u5B50"
+    levelIcon: {fileID: 21300000, guid: f732a11ccb9b17742bbb06a1fb6a4bed, type: 3}
+    bonuses: []
+    carrierPrefab: {fileID: 4096317319113318131, guid: 6978bd88ec0075f4fae42b9907a89c05,
+      type: 3}
+  - level: 1
+    scenePrefab: {fileID: 5794007218624550636, guid: 1096b602f778b4c489030e8fff10189d,
+      type: 3}
+    upgradeCost: 145
+    buildDuration: 60
+    feePerDay: 0
+    capacity: 0
+    requiredEquipment: {fileID: 0}
+    requiredEquipmentLevel: 1
+    levelDisplayName: "\u67DC\u5B50"
+    levelIcon: {fileID: 21300000, guid: f732a11ccb9b17742bbb06a1fb6a4bed, type: 3}
+    bonuses: []
+    carrierPrefab: {fileID: 4096317319113318131, guid: 6978bd88ec0075f4fae42b9907a89c05,
+      type: 3}
+  thisEquipentUnlockOnly: 0
+  producedProduct: {fileID: 0}
+  baseProductionTime: 0
+  perLevelSpeedPercent: 1

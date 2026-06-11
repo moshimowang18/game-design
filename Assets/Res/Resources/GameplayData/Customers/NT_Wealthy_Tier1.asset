@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34bd412a09d8b45489cbd3fd514edbae, type: 3}
+  m_Name: NT_Wealthy_Tier1
+  m_EditorClassIdentifier: Assembly-CSharp::SO_Customer
+  customerId: 4
+  displayName: Customer
+  portrait: {fileID: 0}
+  customerPrefab: {fileID: 6363415779920160104, guid: 21558462ffe206f4ba6033bba3bd3199,
+    type: 3}
+  desiredProduct: {fileID: 11400000, guid: 6951737ea4ec6094882692262fbc6a07, type: 2}
+  payAmountOverride: 2000
+  queuePatienceMin: 50
+  queuePatienceMax: 50
+  insidePatienceMin: 20
+  insidePatienceMax: 30
+  minShopLevel: 1

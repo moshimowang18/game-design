@@ -1,0 +1,30 @@
+{
+    "comments": [
+        {
+            "guid": "b59008b102589744a9dbda0e02c0574e",
+            "title": "资产目录",
+            "comment": "",
+            "titleColor": {
+                "r": 0.0,
+                "g": 1.0,
+                "b": 0.22872543334960938,
+                "a": 1.0
+            },
+            "createdTimeStamp": 1772518032522,
+            "modifiedTimeStamp": 1772518032522
+        },
+        {
+            "guid": "0b97c39c8dd099f4fab014f560450c69",
+            "title": "场景",
+            "comment": "",
+            "titleColor": {
+                "r": 0.4000000059604645,
+                "g": 0.800000011920929,
+                "b": 1.0,
+                "a": 1.0
+            },
+            "createdTimeStamp": 1772518055492,
+            "modifiedTimeStamp": 1772518055492
+        }
+    ]
+}

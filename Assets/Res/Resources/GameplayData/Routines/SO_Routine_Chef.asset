@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0acbcbf9c3db484980f7845f73c4044, type: 3}
+  m_Name: SO_Routine_Chef
+  m_EditorClassIdentifier: Assembly-CSharp::SO_Routine
+  routineId: 0
+  displayName: 
+  steps:
+  - stepName: WokCooking
+    targetEquipment: {fileID: 11400000, guid: 09d0a234c7a06104ba12b17f800a46f3, type: 2}
+    targetCustomerProduct: {fileID: 0}
+    animationTrigger: TrCook
+    playAnimationSeconds: 0
+    localOffset: {x: 0, y: 0, z: 0}
+  - stepName: BaoziSteaming
+    targetEquipment: {fileID: 11400000, guid: e2205e26e31065a4abe4de3378682f23, type: 2}
+    targetCustomerProduct: {fileID: 0}
+    animationTrigger: TrSteam
+    playAnimationSeconds: 0
+    localOffset: {x: 0, y: 0, z: 0}
+  - stepName: WineShelf
+    targetEquipment: {fileID: 11400000, guid: 0f52ae0106a1f014ab03d2007359c9a6, type: 2}
+    targetCustomerProduct: {fileID: 0}
+    animationTrigger: TrSteam
+    playAnimationSeconds: 0
+    localOffset: {x: 0, y: 0, z: 0}
+  idleBetweenStepsMin: 12
+  idleBetweenStepsMax: 40
+  wanderRadius: 0.75

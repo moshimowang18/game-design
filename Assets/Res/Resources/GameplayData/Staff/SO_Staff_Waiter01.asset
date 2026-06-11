@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77b446bdcf748fa4c98a642e46b36e05, type: 3}
+  m_Name: SO_Staff_Waiter01
+  m_EditorClassIdentifier: Assembly-CSharp::SO_Staff
+  staffId: 1
+  displayName: "\u82B1\u82B1"
+  role: 1
+  icon: {fileID: 21300000, guid: ca19e53c9fca7264f9471662d6dbd801, type: 3}
+  miniIcon: {fileID: 21300000, guid: 39d6aa5fd5997154b85a3d21e99e2108, type: 3}
+  description: "\u524D\u53F0\u670D\u52A1\u5458"
+  routine: {fileID: 11400000, guid: c17f29e1a3542fa499b3945e7b7bb052, type: 2}
+  hireDurationSeconds: 180
+  overloadStartLevel: 1
+  levels:
+  - level: 0
+    requiredShopLevel: 0
+    requiredEquipment: {fileID: 0}
+    requiredEquipmentLevel: 0
+    hireUpgradeCost: 0
+    salaryCostPerDay: 0
+    cleaningTime: 30
+    productsUnlockedAtThisLevel: []
+    bonuses: []
+    bonusDescription: 
+    staffPrefab: {fileID: 0}
+  - level: 1
+    requiredShopLevel: 0
+    requiredEquipment: {fileID: 11400000, guid: 14d4458e5a2a9a041a8dfc858b139800,
+      type: 2}
+    requiredEquipmentLevel: 1
+    hireUpgradeCost: 350
+    salaryCostPerDay: 80
+    cleaningTime: 5
+    productsUnlockedAtThisLevel: []
+    bonuses: []
+    bonusDescription: 
+    staffPrefab: {fileID: 5121135783229637143, guid: 6fb24986707876546828188f97894995,
+      type: 3}
+  - level: 2
+    requiredShopLevel: 0
+    requiredEquipment: {fileID: 11400000, guid: 14d4458e5a2a9a041a8dfc858b139800,
+      type: 2}
+    requiredEquipmentLevel: 1
+    hireUpgradeCost: 350
+    salaryCostPerDay: 113
+    cleaningTime: 4
+    productsUnlockedAtThisLevel: []
+    bonuses: []
+    bonusDescription: 
+    staffPrefab: {fileID: 5121135783229637143, guid: 6fb24986707876546828188f97894995,
+      type: 3}
+  - level: 3
+    requiredShopLevel: 0
+    requiredEquipment: {fileID: 11400000, guid: 14d4458e5a2a9a041a8dfc858b139800,
+      type: 2}
+    requiredEquipmentLevel: 1
+    hireUpgradeCost: 700
+    salaryCostPerDay: 147
+    cleaningTime: 8
+    productsUnlockedAtThisLevel: []
+    bonuses: []
+    bonusDescription: 
+    staffPrefab: {fileID: 5121135783229637143, guid: 6fb24986707876546828188f97894995,
+      type: 3}
+  - level: 4
+    requiredShopLevel: 0
+    requiredEquipment: {fileID: 11400000, guid: 14d4458e5a2a9a041a8dfc858b139800,
+      type: 2}
+    requiredEquipmentLevel: 1
+    hireUpgradeCost: 1050
+    salaryCostPerDay: 180
+    cleaningTime: 7
+    productsUnlockedAtThisLevel: []
+    bonuses: []
+    bonusDescription: 
+    staffPrefab: {fileID: 5121135783229637143, guid: 6fb24986707876546828188f97894995,
+      type: 3}
+  unlockUIId: 255
+  "uklnIdntykatorSie\u0107": 1
