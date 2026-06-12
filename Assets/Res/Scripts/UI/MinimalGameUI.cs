@@ -1,13 +1,19 @@
 using JN.Client.Model;
+using JN.Client.UI;
+using QFramework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace JN.Client.Manager
 {
-    [DefaultExecutionOrder(100)]
+    [DefaultExecutionOrder(-100)]
     public class MinimalGameUI : MonoBehaviour
     {
         private const float ReferenceHeight = 1080f;
         private const float ReferenceWidth = 1920f;
+        private const string HostObjectName = "[DayCycleUI]";
+
+        private static MinimalGameUI s_instance;
 
         private int lastScreenWidth;
         private int lastScreenHeight;
@@ -20,8 +26,64 @@ namespace JN.Client.Manager
         private GUIStyle highlightStyle;
         private bool stylesReady;
 
+        /// <summary>
+        /// 挂在场景相机上的实例会迁移到常驻 Host，避免切场景后 IMGUI 消失。
+        /// </summary>
+        private void Awake()
+        {
+            if (s_instance != null && s_instance != this)
+            {
+                Destroy(this);
+                return;
+            }
+
+            if (gameObject.name != HostObjectName)
+            {
+                var host = new GameObject(HostObjectName);
+                DontDestroyOnLoad(host);
+                host.AddComponent<MinimalGameUI>();
+                Destroy(this);
+                return;
+            }
+
+            s_instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+
+        private void OnEnable()
+        {
+            if (s_instance == this)
+            {
+                SceneManager.sceneLoaded += HandleSceneLoaded;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (s_instance == this)
+            {
+                SceneManager.sceneLoaded -= HandleSceneLoaded;
+            }
+        }
+
+        private void HandleSceneLoaded(UnityEngine.SceneManagement.Scene scene, LoadSceneMode mode)
+        {
+            if (s_instance != this)
+            {
+                return;
+            }
+
+            CloseBlockingTavernPanels();
+        }
+
         private void Start()
         {
+            if (s_instance != this)
+            {
+                return;
+            }
+
+            CloseBlockingTavernPanels();
             DataManager.Instance.Init();
 
             var player = DataManager.Instance.PlayerData;
@@ -39,13 +101,25 @@ namespace JN.Client.Manager
             EventSystemManager.Instance.Initialize();
             EnsureDemoData();
 
+            // 早于 TavernSceneManager.Start，避免存档 isOpen=true 时客人抢先进场
+            if (DataManager.Instance.SaveData?.tavern != null && DataManager.Instance.SaveData.tavern.isOpen)
+            {
+                DataManager.Instance.SetTavernOpen(false);
+            }
+
             TavernDayManager.Instance.Init();
             TavernDayManager.Instance.StartNewDay(1);
         }
 
         private void OnGUI()
         {
+            if (s_instance != null && s_instance != this)
+            {
+                return;
+            }
+
             EnsureStyles();
+            GUI.depth = 9999;
 
             float margin = 32f * uiScale;
             var area = new Rect(margin, margin, Screen.width - margin * 2f, Screen.height - margin * 2f);
@@ -230,9 +304,10 @@ namespace JN.Client.Manager
 
             GUILayout.Label("【营业阶段】", titleStyle);
             GUILayout.Space(12f * uiScale);
-            GUILayout.Label($"剩余时间: {Mathf.CeilToInt(opMgr.TimeRemaining)} 秒", bodyStyle);
-            GUILayout.Label($"已收银: {Mathf.RoundToInt(opMgr.CurrentRevenue)} 银两", bodyStyle);
-            GUILayout.Label($"总客流: {opMgr.TotalCustomers} 人 | 满意: {opMgr.SatisfiedCustomers} | 差评: {opMgr.NegativeEventCount}", bodyStyle);
+            GUILayout.Label($"剩余时间: {Mathf.CeilToInt(opMgr.TimeRemaining)}秒", bodyStyle);
+            GUILayout.Label($"已收银: {Mathf.RoundToInt(opMgr.CurrentRevenue)}银两 (老系统真钱已到账)", bodyStyle);
+            GUILayout.Label($"客人: {opMgr.TotalCustomers}人 (满意: {opMgr.SatisfiedCustomers} | 生气: {opMgr.NegativeEventCount})", bodyStyle);
+            GUILayout.Label("→ 请到3D场景里点击桌位结账", bodyStyle);
 
             if (opMgr.LastErrorTimer > 0f)
             {
@@ -242,38 +317,6 @@ namespace JN.Client.Manager
             GUILayout.Space(16f * uiScale);
 
             var player = DataManager.Instance.PlayerData;
-            int maxTables = player.MaxTables;
-            if (opMgr.UsedTables >= maxTables && opMgr.WaitingGuests > 0)
-            {
-                GUILayout.Label("桌位已满！", highlightStyle);
-            }
-
-            if (opMgr.WaitingGuests > 0)
-            {
-                GUILayout.Label($"等待中: {opMgr.WaitingGuests} 位客人", bodyStyle);
-            }
-            else
-            {
-                GUILayout.Label("暂无新客人", bodyStyle);
-            }
-
-            GUILayout.Label($"桌位: {opMgr.UsedTables}/{maxTables}", bodyStyle);
-
-            if (opMgr.ActiveCustomerCount > 0)
-            {
-                GUILayout.Label($"用餐中: {opMgr.ActiveCustomerCount} 位", bodyStyle);
-            }
-
-            if (opMgr.FinishedCustomerCount > 0)
-            {
-                GUILayout.Label($"{opMgr.FinishedCustomerCount} 位客人吃完了！待收 {Mathf.RoundToInt(opMgr.PendingPayment)} 银两", bodyStyle);
-                if (GUILayout.Button("收钱!", buttonStyle, GUILayout.Height(80f * uiScale)))
-                {
-                    opMgr.CollectMoney();
-                }
-            }
-
-            GUILayout.Space(16f * uiScale);
 
             GUILayout.Label("员工:", bodyStyle);
             for (int i = 0; i < player.Employees.Count; i++)
@@ -427,6 +470,17 @@ namespace JN.Client.Manager
             GUI.color = color;
             GUI.Box(area, GUIContent.none);
             GUI.color = previous;
+        }
+
+        /// <summary>
+        /// 关闭会挡住 IMGUI 的老酒楼全屏弹窗。
+        /// </summary>
+        private static void CloseBlockingTavernPanels()
+        {
+            if (UIKit.GetPanel<StartOpeningWindowController>() != null)
+            {
+                UIKit.ClosePanel<StartOpeningWindowController>();
+            }
         }
 
         private static void EnsureDemoData()
