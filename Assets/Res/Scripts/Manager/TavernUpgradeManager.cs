@@ -63,8 +63,7 @@ namespace JN.Client.Manager
                 return false;
             }
 
-            int availableMoney = Mathf.Max(player.Money, player.coinNum);
-            return availableMoney >= nextLevel.UpgradeCost;
+            return player.coinNum >= nextLevel.UpgradeCost;
         }
 
         public void Upgrade()
@@ -82,7 +81,6 @@ namespace JN.Client.Manager
             }
 
             int cost = nextLevel.UpgradeCost;
-            player.Money = Mathf.Max(0, player.Money - cost);
             DataManager.Instance.ChangeCoinNum(-cost);
 
             player.TavernLevel++;

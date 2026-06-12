@@ -39,6 +39,7 @@ namespace JN.Client.Manager
         public int ActiveCustomerCount => _activeCustomers.Count;
         public int FinishedCustomerCount => _finishedCustomers.Count;
         public float PendingPayment => _pendingPayment;
+        public int UsedTables => _activeCustomers.Count + _finishedCustomers.Count;
         public string LastErrorMessage { get; private set; } = string.Empty;
         public float LastErrorTimer { get; private set; }
 
@@ -220,7 +221,8 @@ namespace JN.Client.Manager
             }
 
             var availableEmployees = player.Employees.FindAll(e => e != null && !e.IsLounging && e.CurrentStamina > 0);
-            while (_waitingGuests > 0 && availableEmployees.Count > 0)
+            int maxTables = player.MaxTables;
+            while (_waitingGuests > 0 && availableEmployees.Count > 0 && UsedTables < maxTables)
             {
                 var emp = availableEmployees[0];
                 availableEmployees.RemoveAt(0);
@@ -273,25 +275,45 @@ namespace JN.Client.Manager
 
                 emp.ResetEfficiency(deltaTime);
 
+                if (emp.CurrentStamina <= 0)
+                {
+                    emp.IsLounging = true;
+                }
+
                 if (emp.IsLounging)
                 {
+                    emp.StaminaRecoveryTimer += deltaTime;
+                    if (emp.StaminaRecoveryTimer >= 12f)
+                    {
+                        emp.StaminaRecoveryTimer = 0f;
+                        int staminaBefore = emp.CurrentStamina;
+                        emp.RecoverStamina();
+                        if (staminaBefore <= 0 && emp.CurrentStamina > 0)
+                        {
+                            emp.IsLounging = false;
+                        }
+                    }
+
                     continue;
                 }
 
                 emp.StaminaRecoveryTimer += deltaTime;
-                if (emp.StaminaRecoveryTimer >= 30f)
+                if (emp.StaminaRecoveryTimer >= 12f)
                 {
                     emp.StaminaRecoveryTimer = 0f;
                     emp.RecoverStamina();
                 }
 
-                emp.LoungingTimer += deltaTime;
-                if (emp.LoungingTimer >= 20f)
+                if (emp.CurrentStamina >= 2)
                 {
-                    emp.LoungingTimer = 0f;
-                    if (UnityEngine.Random.value < 0.2f)
+                    emp.LoungingTimer += deltaTime;
+                    if (emp.LoungingTimer >= 20f)
                     {
-                        emp.IsLounging = true;
+                        emp.LoungingTimer = 0f;
+                        if (UnityEngine.Random.value < 0.15f)
+                        {
+                            emp.IsLounging = true;
+                        }
                     }
                 }
             }

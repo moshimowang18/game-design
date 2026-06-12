@@ -16,13 +16,13 @@ namespace JN.Client.Model
         public long createdAtUtcTicks;
 
         public int CurrentDay = 1;
-        public int Money;
         public List<EmployeeData> Employees = new();
         public List<string> UnlockedDishes = new();
         public int TavernLevel = 1;
         public bool HasVipRoom;
 
         public float EnvironmentBonus => TavernLevel * 0.1f;
+        public int MaxTables => TavernLevel * 2 + 2;
 
         public PlayerModel()
         {
@@ -32,7 +32,6 @@ namespace JN.Client.Model
             createdAtUtcTicks = 0;
             buildId = 0;
             CurrentDay = 1;
-            Money = 0;
             Employees = new List<EmployeeData>();
             UnlockedDishes = new List<string>();
             TavernLevel = 1;

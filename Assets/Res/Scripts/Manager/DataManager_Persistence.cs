@@ -67,11 +67,6 @@ namespace JN.Client.Manager
                 PlayerData.TavernLevel = 1;
             }
 
-            if (PlayerData.Money <= 0 && PlayerData.coinNum > 0)
-            {
-                PlayerData.Money = PlayerData.coinNum;
-            }
-
             if (!HasCreatedPlayer)
             {
                 SaveData.lastSceneName = string.Empty;

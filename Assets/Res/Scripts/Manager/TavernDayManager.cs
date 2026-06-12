@@ -140,7 +140,6 @@ namespace JN.Client.Manager
 
             if (result != null && DataManager.Instance.PlayerData != null)
             {
-                DataManager.Instance.PlayerData.Money += Mathf.RoundToInt(result.TotalRevenue);
                 DataManager.Instance.PlayerData.coinNum += Mathf.RoundToInt(result.TotalRevenue);
             }
 
@@ -170,10 +169,6 @@ namespace JN.Client.Manager
             if (saveData.player != null)
             {
                 saveData.player.CurrentDay = currentDay.DayNumber;
-                if (saveData.player.Money <= 0 && saveData.player.coinNum > 0)
-                {
-                    saveData.player.Money = saveData.player.coinNum;
-                }
             }
         }
     }

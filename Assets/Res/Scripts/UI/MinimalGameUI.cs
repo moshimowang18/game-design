@@ -46,7 +46,7 @@ namespace JN.Client.Manager
             var player = DataManager.Instance.PlayerData;
             var dayData = dayMgr.CurrentDay;
 
-            GUILayout.Label($"第 {dayData.DayNumber} 天  |  银两: {player.Money}  |  酒楼等级: {player.TavernLevel}", headerStyle);
+            GUILayout.Label($"第 {dayData.DayNumber} 天  |  银两: {player.coinNum}  |  酒楼等级: {player.TavernLevel}", headerStyle);
             GUILayout.Space(20f * uiScale);
 
             if (dayMgr.Phase == DayPhase.Preparation)
@@ -83,6 +83,7 @@ namespace JN.Client.Manager
             GUILayout.Space(16f * uiScale);
             GUILayout.Label($"已解锁菜品数: {player.UnlockedDishes.Count}", bodyStyle);
             GUILayout.Label($"员工数: {player.Employees.Count}", bodyStyle);
+            GUILayout.Label($"桌位数: {player.MaxTables}", bodyStyle);
             GUILayout.Label($"客流倍率: x{dayData.GuestFlowMultiplier}", bodyStyle);
 
             GUILayout.Space(28f * uiScale);
@@ -132,6 +133,13 @@ namespace JN.Client.Manager
 
             GUILayout.Space(16f * uiScale);
 
+            var player = DataManager.Instance.PlayerData;
+            int maxTables = player.MaxTables;
+            if (opMgr.UsedTables >= maxTables && opMgr.WaitingGuests > 0)
+            {
+                GUILayout.Label("桌位已满！", highlightStyle);
+            }
+
             if (opMgr.WaitingGuests > 0)
             {
                 GUILayout.Label($"等待中: {opMgr.WaitingGuests} 位客人", bodyStyle);
@@ -140,6 +148,8 @@ namespace JN.Client.Manager
             {
                 GUILayout.Label("暂无新客人", bodyStyle);
             }
+
+            GUILayout.Label($"桌位: {opMgr.UsedTables}/{maxTables}", bodyStyle);
 
             if (opMgr.ActiveCustomerCount > 0)
             {
@@ -157,13 +167,12 @@ namespace JN.Client.Manager
 
             GUILayout.Space(16f * uiScale);
 
-            var player = DataManager.Instance.PlayerData;
             GUILayout.Label("员工:", bodyStyle);
             for (int i = 0; i < player.Employees.Count; i++)
             {
                 var emp = player.Employees[i];
                 string staminaBar = new string('■', emp.CurrentStamina) + new string('□', emp.MaxStamina - emp.CurrentStamina);
-                string status = emp.IsLounging ? "偷懒!" : emp.CurrentStamina <= 1 ? "低体力" : "工作中";
+                string status = GetEmployeeStatus(emp);
                 GUILayout.BeginHorizontal();
                 GUILayout.Label($"{emp.Name} [{staminaBar}] {status}", bodyStyle, GUILayout.ExpandWidth(true));
                 if (emp.IsLounging && GUILayout.Button("踢!", smallButtonStyle, GUILayout.Width(100f * uiScale), GUILayout.Height(56f * uiScale)))
@@ -283,6 +292,26 @@ namespace JN.Client.Manager
             stylesReady = true;
         }
 
+        private static string GetEmployeeStatus(EmployeeData emp)
+        {
+            if (emp.IsLounging && emp.CurrentStamina <= 0)
+            {
+                return "😴休息中";
+            }
+
+            if (emp.IsLounging && emp.CurrentStamina > 0)
+            {
+                return "💤摸鱼!";
+            }
+
+            if (emp.CurrentStamina <= 1)
+            {
+                return "😰低体力";
+            }
+
+            return "👷工作中";
+        }
+
         private static void DrawPanelBackground(Rect area, Color color)
         {
             var previous = GUI.color;
@@ -304,10 +333,9 @@ namespace JN.Client.Manager
                 player.playerName = "测试掌柜";
             }
 
-            if (player.Money <= 0 && player.coinNum <= 0)
+            if (player.coinNum <= 0)
             {
-                player.Money = 5000;
-                player.coinNum = 5000;
+                player.coinNum = 100;
             }
 
             if (player.UnlockedDishes.Count == 0)
