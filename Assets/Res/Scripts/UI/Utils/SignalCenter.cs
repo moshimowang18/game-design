@@ -58,5 +58,41 @@ namespace JN.Client
     {
     }
 
+    /// <summary>
+    /// 3D客人结账成功时触发（来自老系统 CompleteCheckout）。
+    /// 用于新系统评分统计：满意客人数、真实收入。
+    /// </summary>
+    public class TavernCustomerCheckoutSignal : ASignal
+    {
+        public int TableId;
+        public int GroupSize;
+        public int Income;
+
+        public TavernCustomerCheckoutSignal Set(int tableId, int groupSize, int income)
+        {
+            TableId = tableId;
+            GroupSize = groupSize;
+            Income = income;
+            return this;
+        }
+    }
+
+    /// <summary>
+    /// 3D客人点单超时生气离店时触发（来自老系统 HandleTableOrderTimeout）。
+    /// 用于新系统评分统计：差评/负面事件。
+    /// </summary>
+    public class TavernCustomerAngryLeaveSignal : ASignal
+    {
+        public int TableId;
+        public int GroupSize;
+
+        public TavernCustomerAngryLeaveSignal Set(int tableId, int groupSize)
+        {
+            TableId = tableId;
+            GroupSize = groupSize;
+            return this;
+        }
+    }
+
     #endregion
 }

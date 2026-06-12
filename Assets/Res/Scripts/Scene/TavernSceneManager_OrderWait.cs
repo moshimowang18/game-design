@@ -134,6 +134,9 @@ namespace JN.Client.Scene
             }
 
             Signals.Get<TavernRuntimeChangedSignal>().Dispatch();
+            // 通知新系统：客人不耐烦离店
+            var groupSize = leavingCustomers.Count;
+            Signals.Get<TavernCustomerAngryLeaveSignal>().Set(tableId, groupSize).Dispatch();
         }
     }
 }

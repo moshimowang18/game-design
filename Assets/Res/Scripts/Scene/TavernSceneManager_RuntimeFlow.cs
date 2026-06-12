@@ -435,6 +435,8 @@ namespace JN.Client.Scene
             }
 
             Signals.Get<TavernRuntimeChangedSignal>().Dispatch();
+            // 通知新系统：3D客人成功结账
+            Signals.Get<TavernCustomerCheckoutSignal>().Set(tableId, groupSize, income).Dispatch();
         }
 
         /// <summary>
