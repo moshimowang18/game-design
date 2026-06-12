@@ -23,6 +23,11 @@ namespace JN.Client.Manager
         private void Start()
         {
             DataManager.Instance.Init();
+            if (DataManager.Instance.PlayerData.coinNum <= 0)
+            {
+                DataManager.Instance.PlayerData.coinNum = 30;
+            }
+
             EventSystemManager.Instance.Initialize();
             EnsureDemoData();
 
@@ -69,6 +74,12 @@ namespace JN.Client.Manager
         {
             GUILayout.Label("【准备阶段】", titleStyle);
             GUILayout.Space(12f * uiScale);
+
+            if (dayData.DayNumber == 1)
+            {
+                GUILayout.Label("<color=cyan>第1天提示：选菜要花进货费，扩建桌位才能接更多客人，开始营业前看好今日事件！</color>", bodyStyle);
+                GUILayout.Space(12f * uiScale);
+            }
 
             var evtId = EventSystemManager.Instance.GetTodaysEventId(dayData.DayNumber);
             var evt = EventSystemManager.Instance.GetEventById(evtId);
@@ -149,37 +160,42 @@ namespace JN.Client.Manager
                 int requiredLevel = dishManager.GetRequiredKitchenLevel(dish.DishId);
                 bool unlocked = player.UnlockedDishes.Contains(dish.DishId);
                 string levelHint = requiredLevel > player.TavernLevel ? $" [{requiredLevel}级厨房]" : string.Empty;
-                string dishInfo = $"{dish.DishName} (售价{Mathf.RoundToInt(dish.BasePrice)} | {Mathf.RoundToInt(dish.CookTime)}秒){levelHint}";
+                string eventTag = string.IsNullOrEmpty(dish.EventDishTag) ? string.Empty : $" [{dish.EventDishTag}]";
+                string dishInfo = $"{dish.DishName} (售{Mathf.RoundToInt(dish.BasePrice)} 进{dish.IngredientCost} | {Mathf.RoundToInt(dish.CookTime)}秒{eventTag}){levelHint}";
 
                 if (!unlocked)
                 {
-                    GUILayout.Label($"☐ {dishInfo}", bodyStyle);
+                    GUILayout.Label($"  ☐ {dishInfo}", bodyStyle);
                     continue;
                 }
 
                 bool selected = player.SelectedDishes.Contains(dish.DishId);
-                if (!selected && player.SelectedDishes.Count >= player.MaxDishSlots)
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(selected ? $"  ☑ {dishInfo}" : $"  ☐ {dishInfo}", bodyStyle, GUILayout.ExpandWidth(true));
+
+                if (selected)
                 {
-                    GUILayout.Label($"☐ {dishInfo}", bodyStyle);
-                    continue;
+                    if (GUILayout.Button("取消", smallButtonStyle, GUILayout.Width(100f * uiScale), GUILayout.Height(56f * uiScale)))
+                    {
+                        player.coinNum += dish.IngredientCost;
+                        player.SelectedDishes.Remove(dish.DishId);
+                        DataManager.Instance.SaveGame();
+                    }
+                }
+                else if (player.SelectedDishes.Count < player.MaxDishSlots)
+                {
+                    GUI.enabled = player.coinNum >= dish.IngredientCost;
+                    if (GUILayout.Button("选择", smallButtonStyle, GUILayout.Width(100f * uiScale), GUILayout.Height(56f * uiScale)))
+                    {
+                        player.coinNum -= dish.IngredientCost;
+                        player.SelectedDishes.Add(dish.DishId);
+                        DataManager.Instance.SaveGame();
+                    }
+
+                    GUI.enabled = true;
                 }
 
-                bool newSelected = GUILayout.Toggle(selected, dishInfo, bodyStyle);
-                if (newSelected == selected)
-                {
-                    continue;
-                }
-
-                if (newSelected)
-                {
-                    player.SelectedDishes.Add(dish.DishId);
-                }
-                else
-                {
-                    player.SelectedDishes.Remove(dish.DishId);
-                }
-
-                DataManager.Instance.SaveGame();
+                GUILayout.EndHorizontal();
             }
         }
 
@@ -402,7 +418,7 @@ namespace JN.Client.Manager
 
             if (player.coinNum <= 0)
             {
-                player.coinNum = 100;
+                player.coinNum = 30;
             }
 
             EventSystemManager.Instance.UnlockDishesForKitchenLevel(player.TavernLevel, player);
@@ -410,19 +426,6 @@ namespace JN.Client.Manager
             {
                 player.UnlockedDishes.Add("rice");
                 player.UnlockedDishes.Add("tofu");
-            }
-
-            if (player.SelectedDishes.Count == 0)
-            {
-                foreach (var dishId in player.UnlockedDishes)
-                {
-                    if (player.SelectedDishes.Count >= player.MaxDishSlots)
-                    {
-                        break;
-                    }
-
-                    player.SelectedDishes.Add(dishId);
-                }
             }
 
             if (player.Employees.Count == 0)

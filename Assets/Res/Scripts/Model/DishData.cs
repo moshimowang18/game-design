@@ -15,6 +15,7 @@ namespace JN.Client.Model
         public string TargetGuestType = string.Empty;
         public bool IsUnlocked;
         public int UnlockCost;
+        public int IngredientCost;
         public string EventDishTag = string.Empty;
     }
 }

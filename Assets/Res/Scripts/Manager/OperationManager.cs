@@ -63,7 +63,7 @@ namespace JN.Client.Manager
             _isOperating = true;
 
             float dayFlow = TavernDayManager.Instance.CurrentDay?.GuestFlowMultiplier ?? 1f;
-            _waveTimer = UnityEngine.Random.Range(5f, 15f) / Mathf.Max(0.1f, dayFlow);
+            _waveTimer = UnityEngine.Random.Range(3f, 8f) / Mathf.Max(0.1f, dayFlow);
 
             var employees = DataManager.Instance.PlayerData?.Employees;
             if (employees == null)
@@ -206,12 +206,12 @@ namespace JN.Client.Manager
             _waveTimer -= deltaTime;
             if (_waveTimer <= 0f)
             {
-                int partySize = UnityEngine.Random.Range(1, 4);
+                int partySize = UnityEngine.Random.Range(1, 3);
                 _waitingGuests += partySize;
                 _totalCustomers += partySize;
 
                 float dayFlow = TavernDayManager.Instance.CurrentDay?.GuestFlowMultiplier ?? 1f;
-                _waveTimer = UnityEngine.Random.Range(5f, 15f) / Mathf.Max(0.1f, dayFlow);
+                _waveTimer = UnityEngine.Random.Range(3f, 8f) / Mathf.Max(0.1f, dayFlow);
             }
 
             var player = DataManager.Instance.PlayerData;
