@@ -24,5 +24,9 @@ namespace JN.Client.Model
         public float TipMultiplier = 1f;
         public bool NeedsVipRoom;
         public bool GotVipRoom;
+
+        public float ServeStartTime;
+        public float ServeDuration = 10f;
+        public float Satisfaction = 1f;
     }
 }

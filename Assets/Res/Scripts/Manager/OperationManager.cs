@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using JN.Client.Model;
 using QFramework;
 using UnityEngine;
@@ -21,6 +22,11 @@ namespace JN.Client.Manager
         private float _waveTimer;
         private bool _isOperating;
 
+        private int _waitingGuests;
+        private readonly List<CustomerData> _activeCustomers = new();
+        private readonly List<CustomerData> _finishedCustomers = new();
+        private float _pendingPayment;
+
         public float OperationTimeRemaining => _operationTimeRemaining;
         public float TimeRemaining => _operationTimeRemaining;
         public float CurrentRevenue => _currentRevenue;
@@ -29,6 +35,10 @@ namespace JN.Client.Manager
         public int DissatisfiedCustomers => _dissatisfiedCustomers;
         public int NegativeEventCount => _negativeEventCount;
         public bool IsOperating => _isOperating;
+        public int WaitingGuests => _waitingGuests;
+        public int ActiveCustomerCount => _activeCustomers.Count;
+        public int FinishedCustomerCount => _finishedCustomers.Count;
+        public float PendingPayment => _pendingPayment;
         public string LastErrorMessage { get; private set; } = string.Empty;
         public float LastErrorTimer { get; private set; }
 
@@ -43,6 +53,10 @@ namespace JN.Client.Manager
             _dissatisfiedCustomers = 0;
             _totalCustomers = 0;
             _negativeEventCount = 0;
+            _waitingGuests = 0;
+            _pendingPayment = 0f;
+            _activeCustomers.Clear();
+            _finishedCustomers.Clear();
             LastErrorMessage = string.Empty;
             LastErrorTimer = 0f;
             _isOperating = true;
@@ -63,10 +77,25 @@ namespace JN.Client.Manager
                     continue;
                 }
 
-                employee.StaminaConsumeTimer = 0f;
                 employee.StaminaRecoveryTimer = 0f;
                 employee.LoungingTimer = 0f;
             }
+        }
+
+        /// <summary>
+        /// 收取已吃完客人的款项。
+        /// </summary>
+        public void CollectMoney()
+        {
+            if (_finishedCustomers.Count <= 0)
+            {
+                return;
+            }
+
+            _currentRevenue += _pendingPayment;
+            _satisfiedCustomers += _finishedCustomers.Count;
+            _finishedCustomers.Clear();
+            _pendingPayment = 0f;
         }
 
         /// <summary>
@@ -97,7 +126,6 @@ namespace JN.Client.Manager
             }
 
             _negativeEventCount++;
-            _satisfiedCustomers = Mathf.Max(0, _satisfiedCustomers - 1);
             LastErrorMessage = $"{employee.Name}犯错了！";
             LastErrorTimer = 2f;
         }
@@ -135,6 +163,7 @@ namespace JN.Client.Manager
         public OperationResult EndOperation()
         {
             _isOperating = false;
+            CollectMoney();
 
             var activeEvent = EventSystemManager.Instance.GetEventById(
                 TavernDayManager.Instance.CurrentDay?.EventId);
@@ -177,11 +206,8 @@ namespace JN.Client.Manager
             if (_waveTimer <= 0f)
             {
                 int partySize = UnityEngine.Random.Range(1, 4);
+                _waitingGuests += partySize;
                 _totalCustomers += partySize;
-
-                float income = partySize * UnityEngine.Random.Range(8f, 20f);
-                _currentRevenue += income;
-                _satisfiedCustomers += partySize;
 
                 float dayFlow = TavernDayManager.Instance.CurrentDay?.GuestFlowMultiplier ?? 1f;
                 _waveTimer = UnityEngine.Random.Range(5f, 15f) / Mathf.Max(0.1f, dayFlow);
@@ -191,6 +217,51 @@ namespace JN.Client.Manager
             if (player?.Employees == null)
             {
                 return;
+            }
+
+            var availableEmployees = player.Employees.FindAll(e => e != null && !e.IsLounging && e.CurrentStamina > 0);
+            while (_waitingGuests > 0 && availableEmployees.Count > 0)
+            {
+                var emp = availableEmployees[0];
+                availableEmployees.RemoveAt(0);
+                _waitingGuests--;
+
+                var customer = GenerateCustomer();
+                customer.ServeStartTime = Time.time;
+                customer.ServeDuration = UnityEngine.Random.Range(8f, 15f);
+                _activeCustomers.Add(customer);
+
+                bool success = emp.TryWork();
+                if (!success)
+                {
+                    _negativeEventCount++;
+                    customer.Satisfaction = 0.5f;
+                    LastErrorMessage = $"{emp.Name}犯错了！";
+                    LastErrorTimer = 2f;
+                }
+            }
+
+            for (int i = _activeCustomers.Count - 1; i >= 0; i--)
+            {
+                var customer = _activeCustomers[i];
+                if (Time.time - customer.ServeStartTime < customer.ServeDuration)
+                {
+                    continue;
+                }
+
+                float payment = customer.Type switch
+                {
+                    CustomerType.Vip => UnityEngine.Random.Range(30f, 60f),
+                    CustomerType.Regular => UnityEngine.Random.Range(15f, 30f),
+                    CustomerType.Special => UnityEngine.Random.Range(25f, 50f),
+                    _ => UnityEngine.Random.Range(8f, 20f)
+                };
+                payment *= customer.Satisfaction;
+                payment *= customer.TipMultiplier;
+
+                _pendingPayment += payment;
+                _finishedCustomers.Add(customer);
+                _activeCustomers.RemoveAt(i);
             }
 
             foreach (var emp in player.Employees)
@@ -205,17 +276,6 @@ namespace JN.Client.Manager
                 if (emp.IsLounging)
                 {
                     continue;
-                }
-
-                emp.StaminaConsumeTimer += deltaTime;
-                if (emp.StaminaConsumeTimer >= 10f)
-                {
-                    emp.StaminaConsumeTimer = 0f;
-                    bool success = emp.TryWork();
-                    if (!success)
-                    {
-                        OnEmployeeMistake(emp);
-                    }
                 }
 
                 emp.StaminaRecoveryTimer += deltaTime;
@@ -235,6 +295,35 @@ namespace JN.Client.Manager
                     }
                 }
             }
+        }
+
+        private static CustomerData GenerateCustomer()
+        {
+            float vipBonus = TavernDayManager.Instance.CurrentDay?.VipProbabilityBonus ?? 0f;
+            float roll = UnityEngine.Random.value;
+
+            CustomerType type;
+            if (roll < 0.05f + vipBonus)
+            {
+                type = CustomerType.Vip;
+            }
+            else if (roll < 0.15f + vipBonus * 0.5f)
+            {
+                type = CustomerType.Regular;
+            }
+            else
+            {
+                type = CustomerType.Normal;
+            }
+
+            return new CustomerData
+            {
+                Type = type,
+                Name = type == CustomerType.Vip ? "贵客" : type == CustomerType.Regular ? "熟客" : "客人",
+                Patience = type == CustomerType.Vip ? 120f : type == CustomerType.Regular ? 80f : 60f,
+                TipMultiplier = type == CustomerType.Vip ? 2f : type == CustomerType.Regular ? 1.3f : 1f,
+                Satisfaction = 1f
+            };
         }
     }
 }

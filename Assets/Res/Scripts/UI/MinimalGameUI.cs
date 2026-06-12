@@ -19,7 +19,6 @@ namespace JN.Client.Manager
         private GUIStyle smallButtonStyle;
         private GUIStyle highlightStyle;
         private bool stylesReady;
-        private float floatMoney;
 
         private void Start()
         {
@@ -123,26 +122,37 @@ namespace JN.Client.Manager
             GUILayout.Label("【营业阶段】", titleStyle);
             GUILayout.Space(12f * uiScale);
             GUILayout.Label($"剩余时间: {Mathf.CeilToInt(opMgr.TimeRemaining)} 秒", bodyStyle);
-            GUILayout.Label($"当前收入: {Mathf.RoundToInt(opMgr.CurrentRevenue)} 银两", bodyStyle);
-            GUILayout.Label($"客人: {opMgr.TotalCustomers} 人 (满意: {opMgr.SatisfiedCustomers})", bodyStyle);
-            GUILayout.Label($"负面事件: {opMgr.NegativeEventCount}", bodyStyle);
-
-            if (floatMoney > 0f)
-            {
-                GUILayout.Label($"<color=yellow>+{Mathf.RoundToInt(floatMoney)} 银两!</color>", highlightStyle);
-                floatMoney -= Time.deltaTime * 20f;
-            }
+            GUILayout.Label($"已收银: {Mathf.RoundToInt(opMgr.CurrentRevenue)} 银两", bodyStyle);
+            GUILayout.Label($"总客流: {opMgr.TotalCustomers} 人 | 满意: {opMgr.SatisfiedCustomers} | 差评: {opMgr.NegativeEventCount}", bodyStyle);
 
             if (opMgr.LastErrorTimer > 0f)
             {
                 GUILayout.Label($"<color=red>{opMgr.LastErrorMessage}</color>", highlightStyle);
             }
 
-            GUILayout.Space(20f * uiScale);
+            GUILayout.Space(16f * uiScale);
 
-            if (GUILayout.Button("收钱", buttonStyle, GUILayout.Height(80f * uiScale)))
+            if (opMgr.WaitingGuests > 0)
             {
-                floatMoney = UnityEngine.Random.Range(8f, 20f);
+                GUILayout.Label($"等待中: {opMgr.WaitingGuests} 位客人", bodyStyle);
+            }
+            else
+            {
+                GUILayout.Label("暂无新客人", bodyStyle);
+            }
+
+            if (opMgr.ActiveCustomerCount > 0)
+            {
+                GUILayout.Label($"用餐中: {opMgr.ActiveCustomerCount} 位", bodyStyle);
+            }
+
+            if (opMgr.FinishedCustomerCount > 0)
+            {
+                GUILayout.Label($"{opMgr.FinishedCustomerCount} 位客人吃完了！待收 {Mathf.RoundToInt(opMgr.PendingPayment)} 银两", bodyStyle);
+                if (GUILayout.Button("收钱!", buttonStyle, GUILayout.Height(80f * uiScale)))
+                {
+                    opMgr.CollectMoney();
+                }
             }
 
             GUILayout.Space(16f * uiScale);
@@ -153,8 +163,9 @@ namespace JN.Client.Manager
             {
                 var emp = player.Employees[i];
                 string staminaBar = new string('■', emp.CurrentStamina) + new string('□', emp.MaxStamina - emp.CurrentStamina);
+                string status = emp.IsLounging ? "偷懒!" : emp.CurrentStamina <= 1 ? "低体力" : "工作中";
                 GUILayout.BeginHorizontal();
-                GUILayout.Label($"{emp.Name} [{staminaBar}] {(emp.IsLounging ? "偷懒!" : "工作中")}", bodyStyle, GUILayout.ExpandWidth(true));
+                GUILayout.Label($"{emp.Name} [{staminaBar}] {status}", bodyStyle, GUILayout.ExpandWidth(true));
                 if (emp.IsLounging && GUILayout.Button("踢!", smallButtonStyle, GUILayout.Width(100f * uiScale), GUILayout.Height(56f * uiScale)))
                 {
                     emp.KickBackToWork();
@@ -162,6 +173,13 @@ namespace JN.Client.Manager
 
                 GUILayout.EndHorizontal();
                 GUILayout.Space(8f * uiScale);
+            }
+
+            GUILayout.Space(20f * uiScale);
+            if (GUILayout.Button("结束营业（调试）", buttonStyle, GUILayout.Height(72f * uiScale)))
+            {
+                var result = opMgr.EndOperation();
+                TavernDayManager.Instance.EnterSettlementPhase(result);
             }
         }
 
