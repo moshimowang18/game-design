@@ -120,7 +120,7 @@ namespace JN.Client.Manager
             EnsureStyles();
             GUI.depth = 9999;
 
-            const float panelWidth = 380f;
+            const float panelWidth = 500f;
             const float panelHeight = 800f;
             var panelRect = new Rect(20f, 20f, panelWidth, panelHeight);
 
