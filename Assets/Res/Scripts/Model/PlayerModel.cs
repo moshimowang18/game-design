@@ -18,11 +18,16 @@ namespace JN.Client.Model
         public int CurrentDay = 1;
         public List<EmployeeData> Employees = new();
         public List<string> UnlockedDishes = new();
+        public List<string> SelectedDishes = new();
         public int TavernLevel = 1;
         public bool HasVipRoom;
+        public int PurchasedTables;
 
         public float EnvironmentBonus => TavernLevel * 0.1f;
-        public int MaxTables => TavernLevel * 2 + 2;
+        public int BaseTables => 2;
+        public int MaxTables => BaseTables + PurchasedTables;
+        public int TablePrice => 50 + PurchasedTables * 30;
+        public int MaxDishSlots => TavernLevel + 1;
 
         public PlayerModel()
         {
@@ -34,8 +39,10 @@ namespace JN.Client.Model
             CurrentDay = 1;
             Employees = new List<EmployeeData>();
             UnlockedDishes = new List<string>();
+            SelectedDishes = new List<string>();
             TavernLevel = 1;
             HasVipRoom = false;
+            PurchasedTables = 0;
         }
     }
 }

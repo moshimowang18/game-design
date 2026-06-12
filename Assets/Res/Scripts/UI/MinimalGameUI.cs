@@ -75,34 +75,43 @@ namespace JN.Client.Manager
             if (evt != null)
             {
                 GUILayout.Label($"今日事件: {evt.EventName}", bodyStyle);
-                GUILayout.Label(evt.Description, bodyStyle);
-                GUILayout.Label($"策略提示: {evt.StrategicHint}", bodyStyle);
-                GUILayout.Label($"客流倍率: x{evt.GuestFlowModifier}    贵客概率: +{evt.VipProbModifier}", bodyStyle);
+                GUILayout.Label($"  策略提示: {evt.StrategicHint}", bodyStyle);
             }
 
             GUILayout.Space(16f * uiScale);
-            GUILayout.Label($"已解锁菜品数: {player.UnlockedDishes.Count}", bodyStyle);
-            GUILayout.Label($"员工数: {player.Employees.Count}", bodyStyle);
-            GUILayout.Label($"桌位数: {player.MaxTables}", bodyStyle);
-            GUILayout.Label($"客流倍率: x{dayData.GuestFlowMultiplier}", bodyStyle);
+            DrawDishSelection(player);
 
-            GUILayout.Space(28f * uiScale);
-            if (GUILayout.Button("开始营业！", buttonStyle, GUILayout.Height(88f * uiScale)))
+            GUILayout.Space(16f * uiScale);
+            GUILayout.Label($"桌位: {player.MaxTables}桌 (基础{player.BaseTables} + 扩建{player.PurchasedTables})", bodyStyle);
+
+            int tableCost = player.TablePrice;
+            GUILayout.Label($"购买下一桌需要: {tableCost} 银两", bodyStyle);
+            if (player.coinNum >= tableCost)
             {
-                TavernDayManager.Instance.EnterOperationPhase();
+                if (GUILayout.Button($"添置桌位 ({tableCost} 银两)", buttonStyle, GUILayout.Height(72f * uiScale)))
+                {
+                    player.coinNum -= tableCost;
+                    player.PurchasedTables++;
+                    DataManager.Instance.SaveGame();
+                }
+            }
+            else
+            {
+                GUILayout.Label("银两不足", bodyStyle);
             }
 
-            GUILayout.Space(20f * uiScale);
-            var upgradeMgr = TavernUpgradeManager.Instance;
-            var nextLevel = upgradeMgr.GetNextLevelData();
-            if (nextLevel != null)
+            GUILayout.Space(16f * uiScale);
+            int kitchenUpgradeCost = player.TavernLevel * 100;
+            GUILayout.Label($"厨房等级: {player.TavernLevel}", bodyStyle);
+            if (player.TavernLevel < 3)
             {
-                GUILayout.Label($"下一级: {nextLevel.Name} (费用: {nextLevel.UpgradeCost})", bodyStyle);
-                if (upgradeMgr.CanUpgrade())
+                GUILayout.Label($"升级厨房需要: {kitchenUpgradeCost} 银两", bodyStyle);
+                if (player.coinNum >= kitchenUpgradeCost)
                 {
-                    if (GUILayout.Button($"扩建 ({nextLevel.UpgradeCost} 银两)", buttonStyle, GUILayout.Height(72f * uiScale)))
+                    if (GUILayout.Button($"扩建厨房 ({kitchenUpgradeCost} 银两)", buttonStyle, GUILayout.Height(72f * uiScale)))
                     {
-                        upgradeMgr.Upgrade();
+                        player.coinNum -= kitchenUpgradeCost;
+                        TavernUpgradeManager.Instance.Upgrade();
                     }
                 }
                 else
@@ -112,7 +121,65 @@ namespace JN.Client.Manager
             }
             else
             {
-                GUILayout.Label("已满级", bodyStyle);
+                GUILayout.Label("厨房已满级", bodyStyle);
+            }
+
+            GUILayout.Space(20f * uiScale);
+            GUILayout.Label($"银两: {player.coinNum}", bodyStyle);
+
+            GUILayout.Space(16f * uiScale);
+            if (GUILayout.Button("开始营业！", buttonStyle, GUILayout.Height(88f * uiScale)))
+            {
+                TavernDayManager.Instance.EnterOperationPhase();
+            }
+        }
+
+        private void DrawDishSelection(PlayerModel player)
+        {
+            var dishManager = EventSystemManager.Instance;
+            GUILayout.Label($"明日菜品 (已选 {player.SelectedDishes.Count}/{player.MaxDishSlots} 槽位):", bodyStyle);
+
+            foreach (var dish in dishManager.GetAllDishes())
+            {
+                if (dish == null)
+                {
+                    continue;
+                }
+
+                int requiredLevel = dishManager.GetRequiredKitchenLevel(dish.DishId);
+                bool unlocked = player.UnlockedDishes.Contains(dish.DishId);
+                string levelHint = requiredLevel > player.TavernLevel ? $" [{requiredLevel}级厨房]" : string.Empty;
+                string dishInfo = $"{dish.DishName} (售价{Mathf.RoundToInt(dish.BasePrice)} | {Mathf.RoundToInt(dish.CookTime)}秒){levelHint}";
+
+                if (!unlocked)
+                {
+                    GUILayout.Label($"☐ {dishInfo}", bodyStyle);
+                    continue;
+                }
+
+                bool selected = player.SelectedDishes.Contains(dish.DishId);
+                if (!selected && player.SelectedDishes.Count >= player.MaxDishSlots)
+                {
+                    GUILayout.Label($"☐ {dishInfo}", bodyStyle);
+                    continue;
+                }
+
+                bool newSelected = GUILayout.Toggle(selected, dishInfo, bodyStyle);
+                if (newSelected == selected)
+                {
+                    continue;
+                }
+
+                if (newSelected)
+                {
+                    player.SelectedDishes.Add(dish.DishId);
+                }
+                else
+                {
+                    player.SelectedDishes.Remove(dish.DishId);
+                }
+
+                DataManager.Instance.SaveGame();
             }
         }
 
@@ -338,11 +405,24 @@ namespace JN.Client.Manager
                 player.coinNum = 100;
             }
 
+            EventSystemManager.Instance.UnlockDishesForKitchenLevel(player.TavernLevel, player);
             if (player.UnlockedDishes.Count == 0)
             {
-                player.UnlockedDishes.Add("dish_01");
-                player.UnlockedDishes.Add("dish_02");
-                player.UnlockedDishes.Add("dish_03");
+                player.UnlockedDishes.Add("rice");
+                player.UnlockedDishes.Add("tofu");
+            }
+
+            if (player.SelectedDishes.Count == 0)
+            {
+                foreach (var dishId in player.UnlockedDishes)
+                {
+                    if (player.SelectedDishes.Count >= player.MaxDishSlots)
+                    {
+                        break;
+                    }
+
+                    player.SelectedDishes.Add(dishId);
+                }
             }
 
             if (player.Employees.Count == 0)

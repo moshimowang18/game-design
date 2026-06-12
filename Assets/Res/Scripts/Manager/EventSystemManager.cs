@@ -31,6 +31,12 @@ namespace JN.Client.Manager
     {
         private readonly Dictionary<int, string> eventSchedule = new();
         private readonly Dictionary<string, DailyEvent> eventDefinitions = new();
+        private readonly Dictionary<string, DishData> dishDefinitions = new();
+
+        private static readonly string[] DishOrder =
+        {
+            "rice", "tofu", "fish", "herb_soup", "birdnest", "exotic_meat"
+        };
 
         /// <summary>
         /// 初始化 10 日固定事件剧本。
@@ -39,6 +45,14 @@ namespace JN.Client.Manager
         {
             eventSchedule.Clear();
             eventDefinitions.Clear();
+            dishDefinitions.Clear();
+
+            RegisterDish(new DishData { DishId = "rice", DishName = "白米饭", BasePrice = 5f, CookTime = 3f, TargetGuestType = "all", IsUnlocked = true, UnlockCost = 0, EventDishTag = "快菜" });
+            RegisterDish(new DishData { DishId = "tofu", DishName = "麻婆豆腐", BasePrice = 12f, CookTime = 8f, TargetGuestType = "all", IsUnlocked = true, UnlockCost = 0, EventDishTag = "" });
+            RegisterDish(new DishData { DishId = "fish", DishName = "清蒸鲈鱼", BasePrice = 25f, CookTime = 12f, TargetGuestType = "all", IsUnlocked = false, UnlockCost = 0, EventDishTag = "" });
+            RegisterDish(new DishData { DishId = "herb_soup", DishName = "药膳鸡汤", BasePrice = 35f, CookTime = 14f, TargetGuestType = "all", IsUnlocked = false, UnlockCost = 0, EventDishTag = "药膳" });
+            RegisterDish(new DishData { DishId = "birdnest", DishName = "燕窝羹", BasePrice = 50f, CookTime = 18f, TargetGuestType = "vip", IsUnlocked = false, UnlockCost = 0, EventDishTag = "高档" });
+            RegisterDish(new DishData { DishId = "exotic_meat", DishName = "西域烤羊腿", BasePrice = 45f, CookTime = 16f, TargetGuestType = "all", IsUnlocked = false, UnlockCost = 0, EventDishTag = "异域" });
 
             RegisterEvent(new DailyEvent { EventId = "none", EventName = "风平浪静", Description = "今日风平浪静", StrategicHint = "熟悉基础操作即可", GuestFlowModifier = 1f, VipProbModifier = 0f, CustomerPatienceMod = 1f, DishPriceModifier = 1f, SpecialDishTag = "" });
             RegisterEvent(new DailyEvent { EventId = "small_festival", EventName = "小庙会", Description = "城里小庙会客流略增", StrategicHint = "适当多备菜品", GuestFlowModifier = 1.15f, VipProbModifier = 0.05f, CustomerPatienceMod = 1f, DishPriceModifier = 1f, SpecialDishTag = "" });
@@ -61,6 +75,62 @@ namespace JN.Client.Manager
             eventSchedule[8] = "plague_rumor";
             eventSchedule[9] = "vip_visit";
             eventSchedule[10] = "city_feast";
+        }
+
+        public IReadOnlyList<DishData> GetAllDishes()
+        {
+            var dishes = new List<DishData>();
+            foreach (var dishId in DishOrder)
+            {
+                if (dishDefinitions.TryGetValue(dishId, out var dish))
+                {
+                    dishes.Add(dish);
+                }
+            }
+
+            return dishes;
+        }
+
+        public DishData GetDishById(string dishId)
+        {
+            if (!string.IsNullOrWhiteSpace(dishId) && dishDefinitions.TryGetValue(dishId, out var dish))
+            {
+                return dish;
+            }
+
+            return null;
+        }
+
+        public int GetRequiredKitchenLevel(string dishId)
+        {
+            return dishId switch
+            {
+                "rice" or "tofu" => 1,
+                "fish" or "herb_soup" => 2,
+                "birdnest" or "exotic_meat" => 3,
+                _ => 99
+            };
+        }
+
+        public void UnlockDishesForKitchenLevel(int kitchenLevel, PlayerModel player)
+        {
+            if (player == null)
+            {
+                return;
+            }
+
+            foreach (var dish in dishDefinitions.Values)
+            {
+                bool unlocked = kitchenLevel >= GetRequiredKitchenLevel(dish.DishId);
+                dish.IsUnlocked = unlocked;
+                if (unlocked && !player.UnlockedDishes.Contains(dish.DishId))
+                {
+                    player.UnlockedDishes.Add(dish.DishId);
+                }
+            }
+
+            player.UnlockedDishes.RemoveAll(id => GetRequiredKitchenLevel(id) > kitchenLevel);
+            player.SelectedDishes.RemoveAll(id => !player.UnlockedDishes.Contains(id));
         }
 
         /// <summary>
@@ -112,6 +182,16 @@ namespace JN.Client.Manager
             }
 
             eventDefinitions[dailyEvent.EventId] = dailyEvent;
+        }
+
+        private void RegisterDish(DishData dish)
+        {
+            if (dish == null || string.IsNullOrWhiteSpace(dish.DishId))
+            {
+                return;
+            }
+
+            dishDefinitions[dish.DishId] = dish;
         }
     }
 }
