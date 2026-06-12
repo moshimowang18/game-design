@@ -22,6 +22,8 @@ namespace JN.Client.Model
         public int TavernLevel = 1;
         public bool HasVipRoom;
 
+        public float EnvironmentBonus => TavernLevel * 0.1f;
+
         public PlayerModel()
         {
             playerId = string.Empty;
