@@ -79,6 +79,7 @@ namespace JN.Client.Manager
             EnsureInitialized();
             phase = DayPhase.Operation;
             currentDay.CurrentPhase = DayPhase.Operation;
+            OperationManager.Instance.StartOperation();
             SyncToSaveData();
             DataManager.Instance.SaveGame();
         }
@@ -91,6 +92,19 @@ namespace JN.Client.Manager
             EnsureInitialized();
             phase = DayPhase.Settlement;
             currentDay.CurrentPhase = DayPhase.Settlement;
+
+            var operationManager = OperationManager.Instance;
+            if (operationManager != null)
+            {
+                var activeEvent = EventSystemManager.Instance.GetEventById(currentDay.EventId);
+                result = ScoreCalculator.Calculate(
+                    operationManager.TotalCustomers,
+                    operationManager.SatisfiedCustomers,
+                    operationManager.CurrentRevenue,
+                    operationManager.NegativeEvents,
+                    operationManager.EnvironmentBonus,
+                    activeEvent);
+            }
 
             if (DataManager.Instance.SaveData != null)
             {
