@@ -37,6 +37,8 @@ namespace JN.Client.Model
         public List<LocalShopSaveData> ownedShops = new();
         public List<LocalEquipmentSaveData> ownedEquipment = new();
         public GameplayGuideSaveData gameplayGuide = new();
+        public GameDayData gameDay = new();
+        public OperationResult lastOperationResult;
     }
 
     [Serializable]

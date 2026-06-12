@@ -17,6 +17,8 @@ namespace JN.Client.Model
         public LocalGameplaySaveData gameplay = new();
         public TownSaveData town = new();
         public TavernSaveData tavern = new();
+        public GameDayData gameDay = new();
+        public OperationResult lastOperationResult;
     }
 
     [Serializable]

@@ -27,6 +27,8 @@ namespace JN.Client
             LubanManager.Instance.Init();
             GameManager.Instance.Init();
             DataManager.Instance.Init();
+            EventSystemManager.Instance.Initialize();
+            TavernDayManager.Instance.Init();
             GOReferenceManager.Instance.Init();
 
             // 安装业务侧对通用框架的适配逻辑。

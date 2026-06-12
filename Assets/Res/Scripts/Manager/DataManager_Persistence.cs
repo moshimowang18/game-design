@@ -51,8 +51,26 @@ namespace JN.Client.Manager
             SaveData.gameplay ??= new LocalGameplaySaveData();
             SaveData.town ??= new TownSaveData();
             SaveData.tavern ??= new TavernSaveData();
+            SaveData.gameDay ??= new GameDayData();
+            SaveData.gameplay.gameDay ??= SaveData.gameDay;
             PlayerData = SaveData.player;
             PlayerData.playerName = NormalizePlayerName(PlayerData.playerName) ?? string.Empty;
+            PlayerData.Employees ??= new List<EmployeeData>();
+            PlayerData.UnlockedDishes ??= new List<string>();
+            if (PlayerData.CurrentDay <= 0)
+            {
+                PlayerData.CurrentDay = 1;
+            }
+
+            if (PlayerData.TavernLevel <= 0)
+            {
+                PlayerData.TavernLevel = 1;
+            }
+
+            if (PlayerData.Money <= 0 && PlayerData.coinNum > 0)
+            {
+                PlayerData.Money = PlayerData.coinNum;
+            }
 
             if (!HasCreatedPlayer)
             {

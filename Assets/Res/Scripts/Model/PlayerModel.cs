@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace JN.Client.Model
 {
@@ -14,6 +15,13 @@ namespace JN.Client.Model
         public int buildId;
         public long createdAtUtcTicks;
 
+        public int CurrentDay = 1;
+        public int Money;
+        public List<EmployeeData> Employees = new();
+        public List<string> UnlockedDishes = new();
+        public int TavernLevel = 1;
+        public bool HasVipRoom;
+
         public PlayerModel()
         {
             playerId = string.Empty;
@@ -21,6 +29,12 @@ namespace JN.Client.Model
             coinNum = 0;
             createdAtUtcTicks = 0;
             buildId = 0;
+            CurrentDay = 1;
+            Money = 0;
+            Employees = new List<EmployeeData>();
+            UnlockedDishes = new List<string>();
+            TavernLevel = 1;
+            HasVipRoom = false;
         }
     }
 }
