@@ -1,6 +1,7 @@
 using JN.Client.Model;
 using QFramework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace JN.Client.Manager
 {
@@ -10,11 +11,46 @@ namespace JN.Client.Manager
     [MonoSingletonPath("[Manager]/TavernDayManager")]
     public class TavernDayManager : MonoSingleton<TavernDayManager>
     {
+        /// <summary>
+        /// 场景加载后、各 MonoBehaviour.Start 之前，关闭残留的 3D 营业状态。
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void CloseStaleTavernOpenOnSceneLoad()
+        {
+            var sceneName = SceneManager.GetActiveScene().name;
+            if (sceneName != "GamePlay_Tavern"
+                && sceneName != "Tavern_Gameplay"
+                && sceneName != "SCN_Tavern_Gameplay")
+            {
+                return;
+            }
+
+            var dataManager = DataManager.Instance;
+            if (!dataManager.IsInitialized)
+            {
+                dataManager.Init();
+            }
+
+            if (dataManager.SaveData?.tavern != null && dataManager.TavernData.isOpen)
+            {
+                dataManager.SetTavernOpen(false);
+            }
+        }
+
         private GameDayData currentDay;
         private DayPhase phase = DayPhase.Preparation;
 
         public GameDayData CurrentDay => currentDay;
         public DayPhase Phase => phase;
+
+        /// <summary>
+        /// 是否允许花钱升级/购买（仅准备阶段允许，避免营业中分心做策略操作）。
+        /// 引导流程不受此限制（在调用方判断）。
+        /// </summary>
+        public bool CanSpendMoney()
+        {
+            return Phase == DayPhase.Preparation;
+        }
 
         /// <summary>
         /// 初始化模块依赖和默认状态。
@@ -36,6 +72,13 @@ namespace JN.Client.Manager
             if (dataManager.PlayerData != null && dataManager.PlayerData.CurrentDay > 0)
             {
                 currentDay.DayNumber = dataManager.PlayerData.CurrentDay;
+            }
+
+            // 存档若停在营业阶段，但本次运行尚未 StartOperation，回到准备阶段
+            if (phase == DayPhase.Operation && !OperationManager.Instance.IsOperating)
+            {
+                phase = DayPhase.Preparation;
+                currentDay.CurrentPhase = DayPhase.Preparation;
             }
         }
 
@@ -87,6 +130,7 @@ namespace JN.Client.Manager
                 DataManager.Instance.PlayerData.SelectedDishes.Clear();
             }
 
+            EnsureTavernClosedForDayCycle();
             SyncToSaveData();
             DataManager.Instance.SaveGame();
         }
@@ -97,6 +141,7 @@ namespace JN.Client.Manager
         public void EnterPreparationPhase()
         {
             EnsureInitialized();
+            EnsureTavernClosedForDayCycle();
             phase = DayPhase.Preparation;
             currentDay.CurrentPhase = DayPhase.Preparation;
             SyncToSaveData();
@@ -122,6 +167,7 @@ namespace JN.Client.Manager
         public void EnterSettlementPhase(OperationResult result)
         {
             EnsureInitialized();
+            EnsureTavernClosedForDayCycle();
             phase = DayPhase.Settlement;
             currentDay.CurrentPhase = DayPhase.Settlement;
 
@@ -175,6 +221,22 @@ namespace JN.Client.Manager
             if (saveData.player != null)
             {
                 saveData.player.CurrentDay = currentDay.DayNumber;
+            }
+        }
+
+        /// <summary>
+        /// 日循环进入准备/结算时关闭老系统 3D 营业，避免 isOpen 残留导致客人自动进场。
+        /// </summary>
+        private static void EnsureTavernClosedForDayCycle()
+        {
+            if (DataManager.Instance.SaveData?.tavern == null)
+            {
+                return;
+            }
+
+            if (DataManager.Instance.SaveData.tavern.isOpen)
+            {
+                DataManager.Instance.SetTavernOpen(false);
             }
         }
     }

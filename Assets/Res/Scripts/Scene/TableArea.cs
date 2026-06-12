@@ -144,8 +144,10 @@ namespace JN.Client.Scene
                 return;
             }
 
-            if (DataManager.Instance?.TavernData != null && !DataManager.Instance.TavernData.isOpen)
+            // 升级桌位只能在准备阶段做（覆盖原 !isOpen 判断）
+            if (TavernDayManager.Instance != null && !TavernDayManager.Instance.CanSpendMoney())
             {
+                Debug.Log("[TableArea] 营业中不能升级桌位，请等准备阶段");
                 return;
             }
 
@@ -907,6 +909,12 @@ namespace JN.Client.Scene
         /// </summary>
         private void TryUnlockTable()
         {
+            if (TavernDayManager.Instance != null && !TavernDayManager.Instance.CanSpendMoney())
+            {
+                Debug.Log("[TableArea] 营业中不能解锁桌位，请等准备阶段");
+                return;
+            }
+
             if (!DataManager.Instance.CanPurchaseGuideTables())
             {
                 return;
@@ -1084,6 +1092,18 @@ namespace JN.Client.Scene
                 }
 
                 TavernRuntimeModalUI.ShowFloatingWarning("金币不足，无法升级桌子");
+                yield break;
+            }
+
+            if (TavernDayManager.Instance != null && !TavernDayManager.Instance.CanSpendMoney())
+            {
+                Debug.Log("[TableArea] 营业中不能升级桌位");
+                pendingUpgradeRoutine = null;
+                if (TavernSceneManager.Instance != null)
+                {
+                    TavernSceneManager.Instance.MarkTableUpgrading(tableId, false);
+                }
+
                 yield break;
             }
 

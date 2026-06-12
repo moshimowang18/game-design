@@ -404,6 +404,12 @@ namespace JN.Client.UI
         /// </summary>
         private void OnClickStaffButton()
         {
+            if (TavernDayManager.Instance != null && !TavernDayManager.Instance.CanSpendMoney())
+            {
+                Debug.Log("[StatusBar] 营业中不能招聘员工，请等准备阶段");
+                return;
+            }
+
             var dataManager = DataManager.Instance;
             var guide = dataManager.GameplayGuideData;
             var chefCount = dataManager.GetHiredGuideChefCount();
