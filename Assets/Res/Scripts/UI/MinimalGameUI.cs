@@ -24,6 +24,8 @@ namespace JN.Client.Manager
         private GUIStyle buttonStyle;
         private GUIStyle smallButtonStyle;
         private bool stylesReady;
+        private Vector2 _dishScrollPos;
+        private Vector2 _prepScrollPos;
 
         /// <summary>
         /// 挂在场景相机上的实例会迁移到常驻 Host，避免切场景后 IMGUI 消失。
@@ -158,6 +160,8 @@ namespace JN.Client.Manager
 
         private void DrawPreparationPhase(GameDayData dayData, PlayerModel player)
         {
+            _prepScrollPos = GUILayout.BeginScrollView(_prepScrollPos);
+
             GUILayout.Label("【准备阶段】", titleStyle);
             GUILayout.Space(12f * uiScale);
 
@@ -244,12 +248,16 @@ namespace JN.Client.Manager
                 EnsureDemoData();
                 TavernDayManager.Instance.StartNewDay(1);
             }
+
+            GUILayout.EndScrollView();
         }
 
         private void DrawDishSelection(PlayerModel player)
         {
             var dishManager = EventSystemManager.Instance;
             GUILayout.Label($"明日菜品 (已选 {player.SelectedDishes.Count}/{player.MaxDishSlots} 槽位):", bodyStyle);
+
+            _dishScrollPos = GUILayout.BeginScrollView(_dishScrollPos, GUILayout.Height(180));
 
             foreach (var dish in dishManager.GetAllDishes())
             {
@@ -298,6 +306,8 @@ namespace JN.Client.Manager
 
                 GUILayout.EndHorizontal();
             }
+
+            GUILayout.EndScrollView();
         }
 
         private void DrawOperationPhase()
