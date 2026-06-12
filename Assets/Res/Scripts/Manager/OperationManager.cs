@@ -63,7 +63,7 @@ namespace JN.Client.Manager
             _isOperating = true;
 
             float dayFlow = TavernDayManager.Instance.CurrentDay?.GuestFlowMultiplier ?? 1f;
-            _waveTimer = UnityEngine.Random.Range(3f, 8f) / Mathf.Max(0.1f, dayFlow);
+            _waveTimer = UnityEngine.Random.Range(1f, 3f) / Mathf.Max(0.1f, dayFlow);
 
             var employees = DataManager.Instance.PlayerData?.Employees;
             if (employees == null)
@@ -211,7 +211,7 @@ namespace JN.Client.Manager
                 _totalCustomers += partySize;
 
                 float dayFlow = TavernDayManager.Instance.CurrentDay?.GuestFlowMultiplier ?? 1f;
-                _waveTimer = UnityEngine.Random.Range(3f, 8f) / Mathf.Max(0.1f, dayFlow);
+                _waveTimer = UnityEngine.Random.Range(1f, 3f) / Mathf.Max(0.1f, dayFlow);
             }
 
             var player = DataManager.Instance.PlayerData;
@@ -275,39 +275,40 @@ namespace JN.Client.Manager
 
                 emp.ResetEfficiency(deltaTime);
 
-                if (emp.CurrentStamina <= 0)
+                if (emp.CurrentStamina <= 0 && !emp.IsLounging)
                 {
                     emp.IsLounging = true;
                 }
 
-                if (emp.IsLounging)
+                if (emp.IsLounging && emp.CurrentStamina < emp.MaxStamina)
                 {
                     emp.StaminaRecoveryTimer += deltaTime;
-                    if (emp.StaminaRecoveryTimer >= 12f)
+                    if (emp.StaminaRecoveryTimer >= 8f)
                     {
                         emp.StaminaRecoveryTimer = 0f;
-                        int staminaBefore = emp.CurrentStamina;
                         emp.RecoverStamina();
-                        if (staminaBefore <= 0 && emp.CurrentStamina > 0)
+
+                        if (emp.CurrentStamina >= emp.MaxStamina)
                         {
                             emp.IsLounging = false;
+                            emp.LoungingTimer = 0f;
                         }
                     }
 
                     continue;
                 }
 
-                emp.StaminaRecoveryTimer += deltaTime;
-                if (emp.StaminaRecoveryTimer >= 12f)
+                if (!emp.IsLounging)
                 {
-                    emp.StaminaRecoveryTimer = 0f;
-                    emp.RecoverStamina();
-                }
+                    emp.StaminaRecoveryTimer += deltaTime;
+                    if (emp.StaminaRecoveryTimer >= 15f)
+                    {
+                        emp.StaminaRecoveryTimer = 0f;
+                        emp.RecoverStamina();
+                    }
 
-                if (emp.CurrentStamina >= 2)
-                {
                     emp.LoungingTimer += deltaTime;
-                    if (emp.LoungingTimer >= 20f)
+                    if (emp.LoungingTimer >= 20f && emp.CurrentStamina >= 2)
                     {
                         emp.LoungingTimer = 0f;
                         if (UnityEngine.Random.value < 0.15f)

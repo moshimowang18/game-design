@@ -23,9 +23,17 @@ namespace JN.Client.Manager
         private void Start()
         {
             DataManager.Instance.Init();
-            if (DataManager.Instance.PlayerData.coinNum <= 0)
+
+            var player = DataManager.Instance.PlayerData;
+            if (player.CurrentDay <= 0)
             {
-                DataManager.Instance.PlayerData.coinNum = 30;
+                player.coinNum = 30;
+                player.CurrentDay = 1;
+                player.SelectedDishes.Clear();
+                player.UnlockedDishes.Clear();
+                player.UnlockedDishes.Add("rice");
+                player.UnlockedDishes.Add("tofu");
+                DataManager.Instance.SaveGame();
             }
 
             EventSystemManager.Instance.Initialize();
@@ -143,6 +151,23 @@ namespace JN.Client.Manager
             {
                 TavernDayManager.Instance.EnterOperationPhase();
             }
+
+            GUILayout.Space(20f * uiScale);
+            if (GUILayout.Button("重置游戏（调试）", buttonStyle, GUILayout.Height(72f * uiScale)))
+            {
+                player.coinNum = 30;
+                player.CurrentDay = 1;
+                player.TavernLevel = 1;
+                player.PurchasedTables = 0;
+                player.SelectedDishes.Clear();
+                player.UnlockedDishes.Clear();
+                player.UnlockedDishes.Add("rice");
+                player.UnlockedDishes.Add("tofu");
+                player.Employees.Clear();
+                DataManager.Instance.SaveGame();
+                EnsureDemoData();
+                TavernDayManager.Instance.StartNewDay(1);
+            }
         }
 
         private void DrawDishSelection(PlayerModel player)
@@ -256,9 +281,10 @@ namespace JN.Client.Manager
                 var emp = player.Employees[i];
                 string staminaBar = new string('■', emp.CurrentStamina) + new string('□', emp.MaxStamina - emp.CurrentStamina);
                 string status = GetEmployeeStatus(emp);
+                bool isMoyu = emp.IsLounging && emp.CurrentStamina >= emp.MaxStamina;
                 GUILayout.BeginHorizontal();
                 GUILayout.Label($"{emp.Name} [{staminaBar}] {status}", bodyStyle, GUILayout.ExpandWidth(true));
-                if (emp.IsLounging && GUILayout.Button("踢!", smallButtonStyle, GUILayout.Width(100f * uiScale), GUILayout.Height(56f * uiScale)))
+                if (isMoyu && GUILayout.Button("踢!", smallButtonStyle, GUILayout.Width(100f * uiScale), GUILayout.Height(56f * uiScale)))
                 {
                     emp.KickBackToWork();
                 }
@@ -377,14 +403,14 @@ namespace JN.Client.Manager
 
         private static string GetEmployeeStatus(EmployeeData emp)
         {
-            if (emp.IsLounging && emp.CurrentStamina <= 0)
+            if (emp.IsLounging && emp.CurrentStamina < emp.MaxStamina)
             {
-                return "😴休息中";
+                return "😴休息中(自动恢复)";
             }
 
-            if (emp.IsLounging && emp.CurrentStamina > 0)
+            if (emp.IsLounging)
             {
-                return "💤摸鱼!";
+                return "💤摸鱼! (需要踢)";
             }
 
             if (emp.CurrentStamina <= 1)

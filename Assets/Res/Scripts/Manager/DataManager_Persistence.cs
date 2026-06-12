@@ -57,11 +57,6 @@ namespace JN.Client.Manager
             PlayerData.playerName = NormalizePlayerName(PlayerData.playerName) ?? string.Empty;
             PlayerData.Employees ??= new List<EmployeeData>();
             PlayerData.UnlockedDishes ??= new List<string>();
-            if (PlayerData.CurrentDay <= 0)
-            {
-                PlayerData.CurrentDay = 1;
-            }
-
             if (PlayerData.TavernLevel <= 0)
             {
                 PlayerData.TavernLevel = 1;

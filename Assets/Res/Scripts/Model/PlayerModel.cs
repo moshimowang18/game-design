@@ -15,7 +15,7 @@ namespace JN.Client.Model
         public int buildId;
         public long createdAtUtcTicks;
 
-        public int CurrentDay = 1;
+        public int CurrentDay;
         public List<EmployeeData> Employees = new();
         public List<string> UnlockedDishes = new();
         public List<string> SelectedDishes = new();
@@ -36,7 +36,7 @@ namespace JN.Client.Model
             coinNum = 0;
             createdAtUtcTicks = 0;
             buildId = 0;
-            CurrentDay = 1;
+            CurrentDay = 0;
             Employees = new List<EmployeeData>();
             UnlockedDishes = new List<string>();
             SelectedDishes = new List<string>();
