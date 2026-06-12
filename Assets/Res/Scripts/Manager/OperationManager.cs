@@ -20,7 +20,7 @@ namespace JN.Client.Manager
         private int _satisfiedCustomers;
         private int _dissatisfiedCustomers;
         private int _totalCustomers;
-        private int _negativeEvents;
+        private int _negativeEventCount;
         private float _waveTimer;
         private bool _isOperating;
 
@@ -31,11 +31,9 @@ namespace JN.Client.Manager
         public int TotalCustomers => _totalCustomers;
         public int SatisfiedCustomers => _satisfiedCustomers;
         public int DissatisfiedCustomers => _dissatisfiedCustomers;
-        public int NegativeEvents => _negativeEvents;
+        public int NegativeEventCount => _negativeEventCount;
         public int PendingWaveCount => _waves.Count;
         public bool IsOperating => _isOperating;
-
-        public float EnvironmentBonus => CalculateEnvironmentBonus();
 
         /// <summary>
         /// 重置营业状态并开始倒计时。
@@ -47,7 +45,7 @@ namespace JN.Client.Manager
             _satisfiedCustomers = 0;
             _dissatisfiedCustomers = 0;
             _totalCustomers = 0;
-            _negativeEvents = 0;
+            _negativeEventCount = 0;
             _waves.Clear();
             _waveTimer = GetWaveInterval();
             _isOperating = true;
@@ -80,7 +78,7 @@ namespace JN.Client.Manager
                 return;
             }
 
-            _negativeEvents++;
+            _negativeEventCount++;
         }
 
         /// <summary>
@@ -111,20 +109,12 @@ namespace JN.Client.Manager
         }
 
         /// <summary>
-        /// 营业结束，计算并返回结算结果。
+        /// 营业结束，通知日循环进入结算阶段。
         /// </summary>
-        public OperationResult EndOperation()
+        public void EndOperation()
         {
             _isOperating = false;
-
-            var activeEvent = GetActiveDailyEvent();
-            return ScoreCalculator.Calculate(
-                _totalCustomers,
-                _satisfiedCustomers,
-                _currentRevenue,
-                _negativeEvents,
-                EnvironmentBonus,
-                activeEvent);
+            TavernDayManager.Instance.EnterSettlementPhase(null);
         }
 
         private void Update()
@@ -145,8 +135,7 @@ namespace JN.Client.Manager
             }
 
             _operationTimeRemaining = 0f;
-            var result = EndOperation();
-            TavernDayManager.Instance.EnterSettlementPhase(result);
+            EndOperation();
         }
 
         private void TickEmployeeEfficiency(float deltaTime)
@@ -187,27 +176,5 @@ namespace JN.Client.Manager
             return BaseWaveInterval / Mathf.Max(0.1f, guestFlow);
         }
 
-        private DailyEvent GetActiveDailyEvent()
-        {
-            var eventId = TavernDayManager.Instance.CurrentDay?.EventId;
-            return EventSystemManager.Instance.GetEventById(eventId);
-        }
-
-        private static float CalculateEnvironmentBonus()
-        {
-            var player = DataManager.Instance.PlayerData;
-            if (player == null)
-            {
-                return 0.1f;
-            }
-
-            float bonus = player.TavernLevel * 0.05f;
-            if (player.HasVipRoom)
-            {
-                bonus += 0.1f;
-            }
-
-            return Mathf.Clamp01(bonus);
-        }
     }
 }

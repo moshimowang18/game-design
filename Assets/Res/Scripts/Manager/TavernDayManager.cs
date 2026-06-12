@@ -54,6 +54,32 @@ namespace JN.Client.Manager
             var dailyEvent = EventSystemManager.Instance.GetEventById(eventId);
             EventSystemManager.Instance.ApplyEventEffects(dailyEvent, currentDay);
 
+            var lastResult = DataManager.Instance.SaveData?.lastOperationResult;
+            if (lastResult != null)
+            {
+                currentDay.GuestFlowMultiplier = lastResult.StarRating switch
+                {
+                    5 => 1.3f,
+                    4 => 1.1f,
+                    3 => 1.0f,
+                    2 => 0.8f,
+                    _ => 0.6f
+                };
+                currentDay.VipProbabilityBonus = lastResult.StarRating switch
+                {
+                    5 => 0.5f,
+                    4 => 0.2f,
+                    3 => 0f,
+                    2 => -0.1f,
+                    _ => -0.3f
+                };
+            }
+            else
+            {
+                currentDay.GuestFlowMultiplier = 1f;
+                currentDay.VipProbabilityBonus = 0f;
+            }
+
             phase = DayPhase.Preparation;
             SyncToSaveData();
             DataManager.Instance.SaveGame();
@@ -93,16 +119,16 @@ namespace JN.Client.Manager
             phase = DayPhase.Settlement;
             currentDay.CurrentPhase = DayPhase.Settlement;
 
-            var operationManager = OperationManager.Instance;
-            if (operationManager != null)
+            if (result == null)
             {
+                var opMgr = OperationManager.Instance;
                 var activeEvent = EventSystemManager.Instance.GetEventById(currentDay.EventId);
                 result = ScoreCalculator.Calculate(
-                    operationManager.TotalCustomers,
-                    operationManager.SatisfiedCustomers,
-                    operationManager.CurrentRevenue,
-                    operationManager.NegativeEvents,
-                    operationManager.EnvironmentBonus,
+                    opMgr.TotalCustomers,
+                    opMgr.SatisfiedCustomers,
+                    opMgr.CurrentRevenue,
+                    opMgr.NegativeEventCount,
+                    DataManager.Instance.PlayerData?.TavernLevel * 0.1f ?? 0f,
                     activeEvent);
             }
 
