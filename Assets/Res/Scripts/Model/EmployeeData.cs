@@ -16,7 +16,9 @@ namespace JN.Client.Model
         public float SkillLevel = 1f;
         public bool IsLounging;
         public float WorkEfficiency = 1f;
-        public float loungingTimer;
+        public float LoungingTimer;
+        public float StaminaConsumeTimer;
+        public float StaminaRecoveryTimer;
 
         private float efficiencyResetTimer;
 
@@ -46,7 +48,7 @@ namespace JN.Client.Model
             if (IsLowStamina)
             {
                 float mistakeChance = 0.3f / SkillLevel;
-                return Random.value > mistakeChance;
+                return UnityEngine.Random.value > mistakeChance;
             }
 
             return true;

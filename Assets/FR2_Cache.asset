@@ -129997,15 +129997,15 @@ MonoBehaviour:
       ids: 2003450100000000
   - guid: df1e9b57059fb224e9e89ce9297a7aaa
     type: 3
-    m_fileInfoHash: 11777.unity
+    m_fileInfoHash: 12166.unity
     m_assetbundle: 
     m_addressable: 
     m_atlas: 
-    m_fileSize: 11777
-    m_assetChangeTS: 0
-    m_fileInfoReadTS: 1777368460
-    m_fileWriteTS: 1772785157
-    m_cachefileWriteTS: 1772785157
+    m_fileSize: 12166
+    m_assetChangeTS: 1781244486
+    m_fileInfoReadTS: 1781244874
+    m_fileWriteTS: 1781242380
+    m_cachefileWriteTS: 1781242380
     m_forceIncludeInBuild: 0
     refreshStamp: 2
     UseGUIDsList:
@@ -130016,6 +130016,8 @@ MonoBehaviour:
     - guid: 0000000000000000e000000000000000
       ids: 1127000000000000
     - guid: a79441f348de89743a2939f4d699eac1
+      ids: e079af0000000000
+    - guid: c1e7f3a92d4b58e6a0c9f2d7b5e814a3
       ids: e079af0000000000
     - guid: 4f231c4fb786f3946a6b90b886c48677
       ids: e079af0000000000
@@ -144533,6 +144535,44 @@ MonoBehaviour:
     UseGUIDsList:
     - guid: dfaeac7731fb141568e45d384ea8121b
       ids: 0000000000000000
+  - guid: a7b3c9d15e4f6a8b2c0d1e3f5a7b9c1d
+    type: 5
+    m_fileInfoHash: 1066.asset
+    m_assetbundle: 
+    m_addressable: 
+    m_atlas: 
+    m_fileSize: 1066
+    m_assetChangeTS: 0
+    m_fileInfoReadTS: 1781244874
+    m_fileWriteTS: 1781242353
+    m_cachefileWriteTS: 1781242353
+    m_forceIncludeInBuild: 0
+    refreshStamp: 2
+    UseGUIDsList:
+    - guid: e8c3a1f74b9d4a6f8e1c0d7b5a294f62
+      ids: e079af0000000000
+  - guid: b8d4e2f16a3c59d7e1f0a4b6c8d2e5f9
+    type: 3
+    m_fileInfoHash: 6428.unity
+    m_assetbundle: 
+    m_addressable: 
+    m_atlas: 
+    m_fileSize: 6428
+    m_assetChangeTS: 0
+    m_fileInfoReadTS: 1781244874
+    m_fileWriteTS: 1781242377
+    m_cachefileWriteTS: 1781242377
+    m_forceIncludeInBuild: 0
+    refreshStamp: 2
+    UseGUIDsList:
+    - guid: 00000000000000000000000000000000
+      ids: 
+    - guid: 0000000000000000f000000000000000
+      ids: 4028000000000000
+    - guid: 0000000000000000e000000000000000
+      ids: 1127000000000000
+    - guid: c1e7f3a92d4b58e6a0c9f2d7b5e814a3
+      ids: e079af0000000000
   setting:
     alternateColor: 1
     excludeTypes: 0
