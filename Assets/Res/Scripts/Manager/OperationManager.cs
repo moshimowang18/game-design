@@ -27,6 +27,7 @@ namespace JN.Client.Manager
         private readonly Queue<int> _waves = new();
 
         public float OperationTimeRemaining => _operationTimeRemaining;
+        public float TimeRemaining => _operationTimeRemaining;
         public float CurrentRevenue => _currentRevenue;
         public int TotalCustomers => _totalCustomers;
         public int SatisfiedCustomers => _satisfiedCustomers;
