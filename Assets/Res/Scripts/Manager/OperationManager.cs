@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using JN.Client.Model;
+using JN.Client.Scene;
 using QFramework;
 using UnityEngine;
 
@@ -48,6 +49,34 @@ namespace JN.Client.Manager
         /// </summary>
         public void StartOperation()
         {
+            // === 桥接老系统：开启 3D 客人生成 ===
+            var saveData = DataManager.Instance.SaveData;
+            var player = DataManager.Instance.PlayerData;
+
+            if (Object.FindObjectOfType<TavernSceneManager>() != null)
+            {
+                DataManager.Instance.ResetTransientTavernState();
+                saveData = DataManager.Instance.SaveData;
+            }
+
+            if (saveData?.tavern?.tables != null && player != null)
+            {
+                for (int i = 0; i < saveData.tavern.tables.Count; i++)
+                {
+                    saveData.tavern.tables[i].isUnlocked = i < player.MaxTables;
+                }
+            }
+
+            if (saveData?.tavern != null && player != null)
+            {
+                saveData.tavern.availableDishes = player.SelectedDishes.Count;
+            }
+
+            if (saveData?.tavern != null)
+            {
+                DataManager.Instance.SetTavernOpen(true);
+            }
+
             _operationTimeRemaining = DefaultOperationDuration;
             _currentRevenue = 0f;
             _satisfiedCustomers = 0;
@@ -163,6 +192,12 @@ namespace JN.Client.Manager
         /// </summary>
         public OperationResult EndOperation()
         {
+            // === 桥接老系统：关闭 3D 客人生成 ===
+            if (DataManager.Instance.SaveData?.tavern != null)
+            {
+                DataManager.Instance.SetTavernOpen(false);
+            }
+
             _isOperating = false;
             CollectMoney();
 
