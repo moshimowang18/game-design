@@ -23,7 +23,6 @@ namespace JN.Client.Manager
         private GUIStyle headerStyle;
         private GUIStyle buttonStyle;
         private GUIStyle smallButtonStyle;
-        private GUIStyle highlightStyle;
         private bool stylesReady;
 
         /// <summary>
@@ -121,20 +120,25 @@ namespace JN.Client.Manager
             EnsureStyles();
             GUI.depth = 9999;
 
-            float margin = 32f * uiScale;
-            var area = new Rect(margin, margin, Screen.width - margin * 2f, Screen.height - margin * 2f);
-            var bgColor = new Color(0f, 0f, 0f, 0.55f);
-            DrawPanelBackground(area, bgColor);
+            const float panelWidth = 380f;
+            const float panelHeight = 800f;
+            var panelRect = new Rect(20f, 20f, panelWidth, panelHeight);
 
-            GUILayout.BeginArea(area);
-            GUILayout.Space(16f * uiScale);
+            GUILayout.BeginArea(panelRect);
+            var boxBg = new Color(0f, 0f, 0f, 0.55f);
+            var previousColor = GUI.color;
+            GUI.color = boxBg;
+            GUI.Box(new Rect(0f, 0f, panelWidth, panelHeight), GUIContent.none);
+            GUI.color = previousColor;
+
+            GUILayout.Space(12f * uiScale);
 
             var dayMgr = TavernDayManager.Instance;
             var player = DataManager.Instance.PlayerData;
             var dayData = dayMgr.CurrentDay;
 
-            GUILayout.Label($"第 {dayData.DayNumber} 天  |  银两: {player.coinNum}  |  酒楼等级: {player.TavernLevel}", headerStyle);
-            GUILayout.Space(20f * uiScale);
+            GUILayout.Label($"<b>📅 第{dayData.DayNumber}天/10</b>", headerStyle);
+            GUILayout.Space(12f * uiScale);
 
             if (dayMgr.Phase == DayPhase.Preparation)
             {
@@ -169,6 +173,7 @@ namespace JN.Client.Manager
             {
                 GUILayout.Label($"今日事件: {evt.EventName}", bodyStyle);
                 GUILayout.Label($"  策略提示: {evt.StrategicHint}", bodyStyle);
+                GUILayout.Label($"  客流倍率: x{dayData.GuestFlowMultiplier:F1}", bodyStyle);
             }
 
             GUILayout.Space(16f * uiScale);
@@ -216,9 +221,6 @@ namespace JN.Client.Manager
             {
                 GUILayout.Label("厨房已满级", bodyStyle);
             }
-
-            GUILayout.Space(20f * uiScale);
-            GUILayout.Label($"银两: {player.coinNum}", bodyStyle);
 
             GUILayout.Space(16f * uiScale);
             if (GUILayout.Button("开始营业！", buttonStyle, GUILayout.Height(88f * uiScale)))
@@ -302,42 +304,13 @@ namespace JN.Client.Manager
         {
             var opMgr = OperationManager.Instance;
 
-            GUILayout.Label("【营业阶段】", titleStyle);
-            GUILayout.Space(12f * uiScale);
-            GUILayout.Label($"剩余时间: {Mathf.CeilToInt(opMgr.TimeRemaining)}秒", bodyStyle);
-            GUILayout.Label($"已收银: {Mathf.RoundToInt(opMgr.CurrentRevenue)}银两 (老系统真钱已到账)", bodyStyle);
-            GUILayout.Label($"客人: {opMgr.TotalCustomers}人 (满意: {opMgr.SatisfiedCustomers} | 生气: {opMgr.NegativeEventCount})", bodyStyle);
-            GUILayout.Label("→ 请到3D场景里点击桌位结账", bodyStyle);
+            GUILayout.Label("【营业阶段】", new GUIStyle(GUI.skin.label) { fontSize = 20, fontStyle = FontStyle.Bold });
+            GUILayout.Label($"⏱ 剩余: {Mathf.CeilToInt(opMgr.TimeRemaining)}秒", bodyStyle);
+            GUILayout.Label($"📊 客流: {opMgr.TotalCustomers}人 (满意{opMgr.SatisfiedCustomers}/生气{opMgr.NegativeEventCount})", bodyStyle);
+            GUILayout.Label("→ 在3D场景里点击桌位完成结账", bodyStyle);
 
-            if (opMgr.LastErrorTimer > 0f)
-            {
-                GUILayout.Label($"<color=red>{opMgr.LastErrorMessage}</color>", highlightStyle);
-            }
-
-            GUILayout.Space(16f * uiScale);
-
-            var player = DataManager.Instance.PlayerData;
-
-            GUILayout.Label("员工:", bodyStyle);
-            for (int i = 0; i < player.Employees.Count; i++)
-            {
-                var emp = player.Employees[i];
-                string staminaBar = new string('■', emp.CurrentStamina) + new string('□', emp.MaxStamina - emp.CurrentStamina);
-                string status = GetEmployeeStatus(emp);
-                bool isMoyu = emp.IsLounging && emp.CurrentStamina >= emp.MaxStamina;
-                GUILayout.BeginHorizontal();
-                GUILayout.Label($"{emp.Name} [{staminaBar}] {status}", bodyStyle, GUILayout.ExpandWidth(true));
-                if (isMoyu && GUILayout.Button("踢!", smallButtonStyle, GUILayout.Width(100f * uiScale), GUILayout.Height(56f * uiScale)))
-                {
-                    emp.KickBackToWork();
-                }
-
-                GUILayout.EndHorizontal();
-                GUILayout.Space(8f * uiScale);
-            }
-
-            GUILayout.Space(20f * uiScale);
-            if (GUILayout.Button("结束营业（调试）", buttonStyle, GUILayout.Height(72f * uiScale)))
+            GUILayout.Space(20f);
+            if (GUILayout.Button("结束营业（调试）", buttonStyle, GUILayout.Height(48f)))
             {
                 var result = opMgr.EndOperation();
                 TavernDayManager.Instance.EnterSettlementPhase(result);
@@ -433,43 +406,7 @@ namespace JN.Client.Manager
                 wordWrap = true
             };
 
-            highlightStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = Mathf.RoundToInt(32f * uiScale),
-                fontStyle = FontStyle.Bold,
-                richText = true,
-                wordWrap = true
-            };
-
             stylesReady = true;
-        }
-
-        private static string GetEmployeeStatus(EmployeeData emp)
-        {
-            if (emp.IsLounging && emp.CurrentStamina < emp.MaxStamina)
-            {
-                return "😴休息中(自动恢复)";
-            }
-
-            if (emp.IsLounging)
-            {
-                return "💤摸鱼! (需要踢)";
-            }
-
-            if (emp.CurrentStamina <= 1)
-            {
-                return "😰低体力";
-            }
-
-            return "👷工作中";
-        }
-
-        private static void DrawPanelBackground(Rect area, Color color)
-        {
-            var previous = GUI.color;
-            GUI.color = color;
-            GUI.Box(area, GUIContent.none);
-            GUI.color = previous;
         }
 
         /// <summary>
