@@ -94,5 +94,20 @@ namespace JN.Client
         }
     }
 
+    /// <summary>
+    /// 3D小二完成一次上菜时触发（老系统 ServeTableByWaiter 末尾）。
+    /// 用于新系统员工扣体力。
+    /// </summary>
+    public class TavernDishServedSignal : ASignal
+    {
+        public int TableId;
+
+        public TavernDishServedSignal Set(int tableId)
+        {
+            TableId = tableId;
+            return this;
+        }
+    }
+
     #endregion
 }

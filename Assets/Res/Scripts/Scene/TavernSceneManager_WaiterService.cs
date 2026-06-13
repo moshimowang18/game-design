@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using JN.Client;
 using JN.Client.Manager;
 using JN.Client.Model;
 using QFramework;
@@ -299,6 +300,7 @@ namespace JN.Client.Scene
             }
 
             Signals.Get<TavernRuntimeChangedSignal>().Dispatch();
+            Signals.Get<TavernDishServedSignal>().Set(tableId).Dispatch();
         }
 
         /// <summary>

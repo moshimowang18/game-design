@@ -9,6 +9,8 @@ namespace JN.Client.Model
     /// </summary>
     public class PlayerModel
     {
+        public const int MaxEmployeeCount = 3;
+
         public string playerId;
         public string playerName;
         public int coinNum;

@@ -1,3 +1,4 @@
+using JN.Client;
 using JN.Client.Model;
 
 using JN.Client.Scene;
@@ -44,6 +45,8 @@ namespace JN.Client.Manager
 
         private bool _signalsRegistered;
 
+        private bool _employeeSignalRegistered;
+
 
 
         public float OperationTimeRemaining => _operationTimeRemaining;
@@ -65,6 +68,85 @@ namespace JN.Client.Manager
         public string LastErrorMessage { get; private set; } = string.Empty;
 
         public float LastErrorTimer { get; private set; }
+
+        private void Awake()
+        {
+            if (!_employeeSignalRegistered)
+            {
+                Signals.Get<GameplayGuideProgressSignal>().AddListener(OnGameplayGuideProgress);
+                _employeeSignalRegistered = true;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (_employeeSignalRegistered)
+            {
+                Signals.Get<GameplayGuideProgressSignal>().RemoveListener(OnGameplayGuideProgress);
+                _employeeSignalRegistered = false;
+            }
+        }
+
+        private void OnGameplayGuideProgress()
+        {
+            SyncEmployeesFromOldSystem();
+        }
+
+        /// <summary>
+        /// 同步员工数据到老系统招聘的小二数量。
+        /// 老系统 ownedStaff 中 staffId=5 的小二数量为权威。
+        /// </summary>
+        public void SyncEmployeesFromOldSystem()
+        {
+            var player = DataManager.Instance.PlayerData;
+            if (player == null)
+            {
+                return;
+            }
+
+            var oldSystemWaiterCount = DataManager.Instance.GetHiredGuideWaiterCount();
+
+            while (player.Employees.Count < oldSystemWaiterCount && player.Employees.Count < PlayerModel.MaxEmployeeCount)
+            {
+                var emp = new EmployeeData
+                {
+                    Name = $"小二{(char)('A' + player.Employees.Count)}",
+                    Stamina = 3,
+                    IsResting = false,
+                    KickedFromRest = false
+                };
+                player.Employees.Add(emp);
+                Debug.Log($"[Employee] 同步:新增{emp.Name}");
+            }
+
+            while (player.Employees.Count > oldSystemWaiterCount)
+            {
+                player.Employees.RemoveAt(player.Employees.Count - 1);
+            }
+        }
+
+        /// <summary>
+        /// 获取当前在岗（非休息）员工数量，给老系统调度用。
+        /// </summary>
+        public int GetActiveWaiterCount()
+        {
+            var player = DataManager.Instance.PlayerData;
+            if (player == null)
+            {
+                return 0;
+            }
+
+            var count = 0;
+            foreach (var emp in player.Employees)
+            {
+                if (emp != null && !emp.IsResting)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
 
 
 
@@ -164,40 +246,7 @@ namespace JN.Client.Manager
 
             _currentRevenue = 0f;
 
-
-
-            var employees = DataManager.Instance.PlayerData?.Employees;
-
-            if (employees == null)
-
-            {
-
-                return;
-
-            }
-
-
-
-            foreach (var employee in employees)
-
-            {
-
-                if (employee == null)
-
-                {
-
-                    continue;
-
-                }
-
-
-
-                employee.StaminaRecoveryTimer = 0f;
-
-                employee.LoungingTimer = 0f;
-
-            }
-
+            SyncEmployeesFromOldSystem();
         }
 
 
@@ -444,124 +493,6 @@ namespace JN.Client.Manager
                 TavernDayManager.Instance.EnterSettlementPhase(result);
 
                 return;
-
-            }
-
-
-
-            var player = DataManager.Instance.PlayerData;
-
-            if (player?.Employees == null)
-
-            {
-
-                return;
-
-            }
-
-
-
-            foreach (var emp in player.Employees)
-
-            {
-
-                if (emp == null)
-
-                {
-
-                    continue;
-
-                }
-
-
-
-                emp.ResetEfficiency(deltaTime);
-
-
-
-                if (emp.CurrentStamina <= 0 && !emp.IsLounging)
-
-                {
-
-                    emp.IsLounging = true;
-
-                }
-
-
-
-                if (emp.IsLounging && emp.CurrentStamina < emp.MaxStamina)
-
-                {
-
-                    emp.StaminaRecoveryTimer += deltaTime;
-
-                    if (emp.StaminaRecoveryTimer >= 8f)
-
-                    {
-
-                        emp.StaminaRecoveryTimer = 0f;
-
-                        emp.RecoverStamina();
-
-
-
-                        if (emp.CurrentStamina >= emp.MaxStamina)
-
-                        {
-
-                            emp.IsLounging = false;
-
-                            emp.LoungingTimer = 0f;
-
-                        }
-
-                    }
-
-
-
-                    continue;
-
-                }
-
-
-
-                if (!emp.IsLounging)
-
-                {
-
-                    emp.StaminaRecoveryTimer += deltaTime;
-
-                    if (emp.StaminaRecoveryTimer >= 15f)
-
-                    {
-
-                        emp.StaminaRecoveryTimer = 0f;
-
-                        emp.RecoverStamina();
-
-                    }
-
-
-
-                    emp.LoungingTimer += deltaTime;
-
-                    if (emp.LoungingTimer >= 20f && emp.CurrentStamina >= 2)
-
-                    {
-
-                        emp.LoungingTimer = 0f;
-
-                        if (UnityEngine.Random.value < 0.15f)
-
-                        {
-
-                            emp.IsLounging = true;
-
-                        }
-
-                    }
-
-                }
 
             }
 

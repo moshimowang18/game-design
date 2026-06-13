@@ -159,18 +159,14 @@ namespace JN.Client.Manager
             {
                 player.Employees.Add(new EmployeeData
                 {
-                    EmployeeId = 1,
                     Name = "小二阿福",
-                    CurrentStamina = 3,
-                    MaxStamina = 3
+                    Stamina = 3
                 });
                 player.Employees.Add(new EmployeeData
                 {
-                    EmployeeId = 2,
                     Name = "厨师老王",
-                    CurrentStamina = 2,
-                    MaxStamina = 3,
-                    IsLounging = true
+                    Stamina = 2,
+                    IsResting = true
                 });
             }
         }
