@@ -45,7 +45,15 @@ namespace JN.Client.Scene
                     continue;
                 }
 
-                var cookingChefs = GetCookingChefs(activeChefs, pendingDishDemand);
+                var ingredientCount = GetIngredientQueueCount();
+                if (ingredientCount <= 0)
+                {
+                    yield return demandWait;
+                    continue;
+                }
+
+                var cookDemand = Mathf.Min(pendingDishDemand, ingredientCount);
+                var cookingChefs = GetCookingChefs(activeChefs, cookDemand);
                 if (cookingChefs.Length == 0)
                 {
                     yield return demandWait;
@@ -64,11 +72,27 @@ namespace JN.Client.Scene
                 yield return PlayChefCookLoop(cookingChefs, dishCookInterval);
                 ResetChefCookAnimations(cookingChefs);
 
-                var cookedDishCount = Mathf.Min(cookingChefs.Length, GetPendingDishDemand());
+                var cookedDishCount = Mathf.Min(cookingChefs.Length, cookDemand);
                 if (cookedDishCount > 0)
                 {
-                    DataManager.Instance.ChangeAvailableDishes(cookedDishCount);
-                    AddPreparedDishesToFoodTable(cookedDishCount);
+                    var player = DataManager.Instance.PlayerData;
+                    for (var index = 0; index < cookedDishCount; index++)
+                    {
+                        if (!TryTakeIngredientForCook(out var dishId, out var finishedPrefab))
+                        {
+                            break;
+                        }
+
+                        if (player != null)
+                        {
+                            player.ConsumeDishStock(dishId, 1);
+                        }
+
+                        AddFinishedDishToFoodTable(dishId, finishedPrefab);
+                        DataManager.Instance.ChangeAvailableDishes(1);
+                        Debug.Log($"[Stock] 厨师开火: {dishId} 食材->成品, 剩余食材={player?.GetDishStock(dishId) ?? 0}");
+                    }
+
                     Signals.Get<TavernRuntimeChangedSignal>().Dispatch();
                 }
             }
@@ -967,6 +991,144 @@ namespace JN.Client.Scene
         }
 
         /// <summary>
+        /// 按菜品 ID 选择食材模型（裸放桌上）。
+        /// </summary>
+        private GameObject GetIngredientPrefabForDish(string dishId)
+        {
+            if (dishPrefabs.Count == 0)
+            {
+                return null;
+            }
+
+            return dishPrefabs[GetDishVisualIndex(dishId) % dishPrefabs.Count];
+        }
+
+        /// <summary>
+        /// 按菜品 ID 选择成品菜模型（装盘后由小二端走）。
+        /// </summary>
+        private GameObject GetFinishedDishPrefabForDish(string dishId)
+        {
+            return GetIngredientPrefabForDish(dishId);
+        }
+
+        private static int GetDishVisualIndex(string dishId)
+        {
+            return dishId switch
+            {
+                "rice" => 0,
+                "tofu" => 1,
+                "fish" => 2,
+                "herb_soup" => 3,
+                "birdnest" => 0,
+                "exotic_meat" => 1,
+                _ => Mathf.Abs(dishId?.GetHashCode() ?? 0)
+            };
+        }
+
+        /// <summary>
+        /// 营业开始时，把备菜库存以食材模型摆到 FoodTable。
+        /// </summary>
+        public void StageIngredientStockFromPlayer(PlayerModel player)
+        {
+            ClearPreparedDishQueue();
+            if (player?.DishStock == null)
+            {
+                return;
+            }
+
+            foreach (var kv in player.DishStock)
+            {
+                var ingredientPrefab = GetIngredientPrefabForDish(kv.Key);
+                if (ingredientPrefab == null)
+                {
+                    continue;
+                }
+
+                for (var index = 0; index < kv.Value; index++)
+                {
+                    var root = CreateIngredientInstance(ingredientPrefab);
+                    if (root == null)
+                    {
+                        continue;
+                    }
+
+                    stagedIngredientEntries.Add(new StagedDishEntry
+                    {
+                        rootObject = root,
+                        dishPrefab = ingredientPrefab,
+                        dishId = kv.Key
+                    });
+                }
+            }
+
+            RefreshFoodTableLayout();
+            Debug.Log($"[Stock] 食材上桌: {GetIngredientQueueCount()} 份");
+        }
+
+        private void AddFinishedDishToFoodTable(string dishId, GameObject dishPrefab)
+        {
+            if (dishPrefab == null)
+            {
+                return;
+            }
+
+            stagedDishEntries.Add(new StagedDishEntry
+            {
+                rootObject = CreatePreparedDishInstance(dishPrefab),
+                dishPrefab = dishPrefab,
+                dishId = dishId
+            });
+
+            RefreshFoodTableLayout();
+        }
+
+        private bool TryTakeIngredientForCook(out string dishId, out GameObject finishedPrefab)
+        {
+            dishId = string.Empty;
+            finishedPrefab = null;
+            stagedIngredientEntries.RemoveAll(entry => entry == null || entry.rootObject == null);
+            if (stagedIngredientEntries.Count == 0)
+            {
+                return false;
+            }
+
+            var entry = stagedIngredientEntries[0];
+            stagedIngredientEntries.RemoveAt(0);
+            if (entry.rootObject != null)
+            {
+                Destroy(entry.rootObject);
+            }
+
+            dishId = entry.dishId;
+            finishedPrefab = GetFinishedDishPrefabForDish(dishId) ?? entry.dishPrefab;
+            RefreshFoodTableLayout();
+            return !string.IsNullOrEmpty(dishId) && finishedPrefab != null;
+        }
+
+        private int GetIngredientQueueCount()
+        {
+            stagedIngredientEntries.RemoveAll(entry => entry == null || entry.rootObject == null);
+            return stagedIngredientEntries.Count;
+        }
+
+        /// <summary>
+        /// 创建一份摆在 FoodTable 上的裸食材（无餐盘）。
+        /// </summary>
+        private GameObject CreateIngredientInstance(GameObject ingredientPrefab)
+        {
+            if (foodTableObject == null || !foodTableObject.activeInHierarchy || ingredientPrefab == null)
+            {
+                return null;
+            }
+
+            var instance = Instantiate(ingredientPrefab, foodTableObject.transform, false);
+            instance.name = $"Ingredient_{ingredientPrefab.name}_{stagedIngredientEntries.Count + 1}";
+            instance.transform.localRotation = Quaternion.identity;
+            instance.transform.localScale = Vector3.one * 0.85f;
+            return instance;
+        }
+
+        /// <summary>
         /// 随机获取桌面菜品预制体。
         /// </summary>
         /// <returns>返回匹配到的对象引用。</returns>
@@ -978,48 +1140,6 @@ namespace JN.Client.Scene
             }
 
             return dishPrefabs[Random.Range(0, dishPrefabs.Count)];
-        }
-
-        /// <summary>
-        /// 营业开始时，将备菜库存摆到出餐台，与老系统 availableDishes 数量对齐。
-        /// </summary>
-        /// <param name="count">备菜份数。</param>
-        public void StagePreparedDishesFromStock(int count)
-        {
-            ClearPreparedDishQueue();
-            if (count > 0)
-            {
-                AddPreparedDishesToFoodTable(count);
-            }
-        }
-
-        /// <summary>
-        /// 厨师完成做菜后，把餐盘与菜品摆到 FoodTable 上，供小二后续取餐。
-        /// </summary>
-        /// <param name="count">新增菜品数量。</param>
-        private void AddPreparedDishesToFoodTable(int count)
-        {
-            if (count <= 0)
-            {
-                return;
-            }
-
-            for (var index = 0; index < count; index++)
-            {
-                var dishPrefab = GetRandomDishPrefab();
-                if (dishPrefab == null)
-                {
-                    continue;
-                }
-
-                stagedDishEntries.Add(new StagedDishEntry
-                {
-                    rootObject = CreatePreparedDishInstance(dishPrefab),
-                    dishPrefab = dishPrefab
-                });
-            }
-
-            RefreshPreparedDishLayout();
         }
 
         /// <summary>
@@ -1089,6 +1209,17 @@ namespace JN.Client.Scene
             }
 
             stagedDishEntries.Clear();
+
+            for (var index = 0; index < stagedIngredientEntries.Count; index++)
+            {
+                var entry = stagedIngredientEntries[index];
+                if (entry?.rootObject != null)
+                {
+                    Destroy(entry.rootObject);
+                }
+            }
+
+            stagedIngredientEntries.Clear();
         }
 
         /// <summary>
@@ -1117,15 +1248,16 @@ namespace JN.Client.Scene
         }
 
         /// <summary>
-        /// 按固定队列把 FoodTable 上的待取菜品重新排布，避免多份菜重叠。
+        /// 按固定队列把 FoodTable 上的食材与成品菜重新排布，避免重叠。
         /// </summary>
-        private void RefreshPreparedDishLayout()
+        private void RefreshFoodTableLayout()
         {
             if (foodTableObject == null)
             {
                 return;
             }
 
+            stagedIngredientEntries.RemoveAll(entry => entry == null || entry.rootObject == null);
             stagedDishEntries.RemoveAll(entry => entry == null || entry.rootObject == null);
             if (!TryGetFoodTableTopBounds(out var centerLocalX, out var topLocalY, out var halfWidth))
             {
@@ -1136,11 +1268,40 @@ namespace JN.Client.Scene
 
             var spacingX = Mathf.Max(0.14f, halfWidth * FoodTablePlateSpacingRatio);
             var columnCount = Mathf.Max(1, FoodTablePlateColumnCount);
-            var rowCount = Mathf.CeilToInt(stagedDishEntries.Count / (float)columnCount);
-            var startRowZ = -FoodTablePlateRowSpacing * Mathf.Max(0, rowCount - 1) * 0.5f;
-            for (var index = 0; index < stagedDishEntries.Count; index++)
+            LayoutFoodTableEntries(stagedIngredientEntries, centerLocalX, topLocalY, spacingX, columnCount, 0f, FoodTablePlateRowSpacing * 0.9f);
+
+            var ingredientRows = Mathf.CeilToInt(stagedIngredientEntries.Count / (float)columnCount);
+            var finishedRowOffset = ingredientRows > 0
+                ? startRowZOffset(ingredientRows) + FoodTablePlateRowSpacing
+                : 0f;
+            LayoutFoodTableEntries(stagedDishEntries, centerLocalX, topLocalY, spacingX, columnCount, finishedRowOffset, FoodTablePlateRowSpacing);
+        }
+
+        private static float startRowZOffset(int rowCount)
+        {
+            return -FoodTablePlateRowSpacing * Mathf.Max(0, rowCount - 1) * 0.5f
+                   + (rowCount - 1) * FoodTablePlateRowSpacing;
+        }
+
+        private void LayoutFoodTableEntries(
+            List<StagedDishEntry> entries,
+            float centerLocalX,
+            float topLocalY,
+            float spacingX,
+            int columnCount,
+            float rowZOffset,
+            float rowSpacing)
+        {
+            if (entries.Count == 0)
             {
-                var entry = stagedDishEntries[index];
+                return;
+            }
+
+            var rowCount = Mathf.CeilToInt(entries.Count / (float)columnCount);
+            var startRowZ = -rowSpacing * Mathf.Max(0, rowCount - 1) * 0.5f + rowZOffset;
+            for (var index = 0; index < entries.Count; index++)
+            {
+                var entry = entries[index];
                 if (entry?.rootObject == null)
                 {
                     continue;
@@ -1148,13 +1309,20 @@ namespace JN.Client.Scene
 
                 var columnIndex = index % columnCount;
                 var rowIndex = index / columnCount;
-                var columnsInCurrentRow = Mathf.Min(columnCount, stagedDishEntries.Count - rowIndex * columnCount);
+                var columnsInCurrentRow = Mathf.Min(columnCount, entries.Count - rowIndex * columnCount);
                 var startX = centerLocalX - spacingX * Mathf.Max(0, columnsInCurrentRow - 1) * 0.5f;
-                var localZ = startRowZ + rowIndex * FoodTablePlateRowSpacing;
+                var localZ = startRowZ + rowIndex * rowSpacing;
                 entry.rootObject.transform.localPosition = new Vector3(startX + spacingX * columnIndex, topLocalY + FoodTablePlateSurfaceYOffset, localZ);
                 entry.rootObject.transform.localRotation = Quaternion.identity;
-                entry.rootObject.transform.localScale = Vector3.one;
             }
+        }
+
+        /// <summary>
+        /// 按固定队列把 FoodTable 上的待取菜品重新排布，避免多份菜重叠。
+        /// </summary>
+        private void RefreshPreparedDishLayout()
+        {
+            RefreshFoodTableLayout();
         }
 
         /// <summary>

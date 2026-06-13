@@ -47,30 +47,6 @@ namespace JN.Client.Manager
             SaveData.tavern.availableDishes = Mathf.Max(0, SaveData.tavern.availableDishes + delta);
             Signals.Get<TavernRuntimeChangedSignal>().Dispatch();
             SaveGame();
-
-            if (delta < 0)
-            {
-                var player = PlayerData;
-                if (player != null && player.DishStock != null && player.DishStock.Count > 0)
-                {
-                    string topDishId = null;
-                    var topStock = 0;
-                    foreach (var kv in player.DishStock)
-                    {
-                        if (kv.Value > topStock)
-                        {
-                            topStock = kv.Value;
-                            topDishId = kv.Key;
-                        }
-                    }
-
-                    if (topDishId != null)
-                    {
-                        player.ConsumeDishStock(topDishId, -delta);
-                        Debug.Log($"[Stock] 老厨师做菜，扣 {topDishId} 库存 {-delta} 份，剩余{player.GetDishStock(topDishId)}");
-                    }
-                }
-            }
         }
 
         /// <summary>

@@ -103,13 +103,13 @@ namespace JN.Client.Manager
             {
 
                 var totalStock = player.GetTotalDishStock();
-                saveData.tavern.availableDishes = totalStock;
-                Debug.Log($"[OpMgr] 营业开始,同步备菜库存到老系统: {totalStock}份");
+                saveData.tavern.availableDishes = 0;
+                Debug.Log($"[OpMgr] 营业开始,备菜食材上桌: {totalStock}份,成品菜待厨师开火");
 
                 var sceneMgr = Object.FindObjectOfType<TavernSceneManager>();
                 if (sceneMgr != null && totalStock > 0)
                 {
-                    sceneMgr.StagePreparedDishesFromStock(totalStock);
+                    sceneMgr.StageIngredientStockFromPlayer(player);
                 }
 
             }

@@ -27,6 +27,7 @@ namespace JN.Client.Scene
         private readonly List<GameObject> customerTemplates = new();
         private readonly List<GameObject> dishPrefabs = new();
         private readonly List<StagedDishEntry> stagedDishEntries = new();
+        private readonly List<StagedDishEntry> stagedIngredientEntries = new();
         private readonly List<TavernCustomerRuntimeController> activeCustomers = new();
         private readonly List<TavernCustomerRuntimeController> queuedCustomers = new();
         private readonly Dictionary<int, TavernCustomerRuntimeController> tableCustomers = new();
@@ -143,6 +144,7 @@ namespace JN.Client.Scene
         {
             public GameObject rootObject;
             public GameObject dishPrefab;
+            public string dishId = string.Empty;
         }
 
         /// <summary>
