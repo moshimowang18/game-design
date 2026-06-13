@@ -1,4 +1,5 @@
 using JN.Client.Model;
+using JN.Client.UI;
 using QFramework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -208,6 +209,11 @@ namespace JN.Client.Manager
             SyncToSaveData();
             DataManager.Instance.SaveGame();
             Signals.Get<TavernRuntimeChangedSignal>().Dispatch();
+
+            if (UIKit.GetPanel<DaySettlementWindowController>() == null)
+            {
+                UIKit.OpenPanel<DaySettlementWindowController>(UILevel.PopUI);
+            }
         }
 
         private void EnsureInitialized()
