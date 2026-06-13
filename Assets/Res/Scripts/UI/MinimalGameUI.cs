@@ -105,7 +105,6 @@ namespace JN.Client.Manager
 
             GUILayout.Space(12f * uiScale);
 
-            var player = DataManager.Instance.PlayerData;
             var dayData = dayMgr.CurrentDay;
 
             GUILayout.Label($"<b>📅 第{dayData.DayNumber}天/10</b>", headerStyle);
@@ -121,7 +120,7 @@ namespace JN.Client.Manager
             }
             else if (dayMgr.Phase == DayPhase.Settlement)
             {
-                DrawSettlementPhase(dayData, player);
+                DrawSettlementPhase();
             }
 
             GUILayout.EndArea();
@@ -171,43 +170,10 @@ namespace JN.Client.Manager
             }
         }
 
-        private void DrawSettlementPhase(GameDayData dayData, PlayerModel player)
+        private void DrawSettlementPhase()
         {
-            var result = DataManager.Instance.SaveData?.lastOperationResult;
-
-            GUILayout.Label("【今日结算】", titleStyle);
-            GUILayout.Space(12f * uiScale);
-
-            if (result != null)
-            {
-                string stars = new string('*', result.StarRating);
-                GUILayout.Label($"评级: {stars} ({result.StarRating} 星)", bodyStyle);
-                GUILayout.Label($"总收入: {Mathf.RoundToInt(result.TotalRevenue)} 银两", bodyStyle);
-                GUILayout.Label($"菜品满意度: {result.DishSatisfaction:P0}", bodyStyle);
-                GUILayout.Label($"服务效率: {result.ServiceEfficiency:P0}", bodyStyle);
-                GUILayout.Label($"环境加成: {result.EnvironmentBonus:P0}", bodyStyle);
-                GUILayout.Label($"负面事件: {result.NegativeEvents}", bodyStyle);
-
-                GUILayout.Space(16f * uiScale);
-                GUILayout.Label("明日预览:", bodyStyle);
-                string preview = result.StarRating >= 5 ? "口碑远播！" :
-                                 result.StarRating >= 4 ? "声名鹊起" :
-                                 result.StarRating >= 3 ? "门庭若市" :
-                                 result.StarRating >= 2 ? "生意清淡" : "门可罗雀";
-                GUILayout.Label(preview, bodyStyle);
-            }
-
-            GUILayout.Space(28f * uiScale);
-            if (GUILayout.Button("进入下一天", buttonStyle, GUILayout.Height(88f * uiScale)))
-            {
-                int nextDay = dayData.DayNumber + 1;
-                if (nextDay > 10)
-                {
-                    nextDay = 10;
-                }
-
-                TavernDayManager.Instance.StartNewDay(nextDay);
-            }
+            // 结算面板已迁移到 DaySettlementWindowController（PopUI 弹窗）
+            // 此处保留方法签名避免编译错误，但不再绘制任何内容
         }
 
         private void EnsureStyles()
