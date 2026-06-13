@@ -43,9 +43,6 @@ namespace JN.Client.UI
         private TextMeshProUGUI txt_OperationTimer;
         private TextMeshProUGUI _txtCustomerStats;
         private TextMeshProUGUI _txtEmployeeStatus;
-        private Button _btnKickEmployee;
-        private TextMeshProUGUI _txtKickBtnLabel;
-        private bool _kickButtonListenerRegistered;
         private TextMeshProUGUI _txtErrorTip;
         private float _errorTipShowUntil;
 
@@ -100,12 +97,6 @@ namespace JN.Client.UI
             Signals.Get<TavernBusinessStateSignal>().RemoveListener(HandleBusinessStateChanged);
             Signals.Get<TableNumSignal>().RemoveListener(HandleGuideChanged);
             Signals.Get<GameplayGuideProgressSignal>().RemoveListener(HandleGuideChanged);
-
-            if (_btnKickEmployee != null && _kickButtonListenerRegistered)
-            {
-                _btnKickEmployee.onClick.RemoveListener(OnClickKickEmployee);
-                _kickButtonListenerRegistered = false;
-            }
         }
 
         private void Update()
@@ -159,50 +150,6 @@ namespace JN.Client.UI
                 _txtEmployeeStatus = go.GetComponent<TextMeshProUGUI>();
                 var rt = go.GetComponent<RectTransform>();
                 rt.anchoredPosition = _txtCustomerStats.rectTransform.anchoredPosition + new Vector2(0f, -40f);
-            }
-
-            if (_btnKickEmployee == null && _txtEmployeeStatus != null)
-            {
-                var btnGo = new GameObject("btn_KickEmployee");
-                btnGo.transform.SetParent(_txtEmployeeStatus.transform.parent, false);
-
-                var btnImage = btnGo.AddComponent<Image>();
-                btnImage.color = new Color(0.9f, 0.6f, 0.2f, 0.9f);
-                btnImage.raycastTarget = true;
-
-                _btnKickEmployee = btnGo.AddComponent<Button>();
-
-                var btnRt = btnGo.GetComponent<RectTransform>();
-                var statusRt = _txtEmployeeStatus.rectTransform;
-                btnRt.anchorMin = statusRt.anchorMin;
-                btnRt.anchorMax = statusRt.anchorMax;
-                btnRt.pivot = statusRt.pivot;
-                btnRt.anchoredPosition = statusRt.anchoredPosition + new Vector2(280f, 0f);
-                btnRt.sizeDelta = new Vector2(100f, 40f);
-
-                var labelGo = new GameObject("txt_BtnLabel");
-                labelGo.transform.SetParent(btnGo.transform, false);
-                _txtKickBtnLabel = labelGo.AddComponent<TextMeshProUGUI>();
-                _txtKickBtnLabel.text = "踢醒";
-                _txtKickBtnLabel.fontSize = 18;
-                _txtKickBtnLabel.color = Color.white;
-                _txtKickBtnLabel.alignment = TextAlignmentOptions.Center;
-                if (_txtEmployeeStatus.font != null)
-                {
-                    _txtKickBtnLabel.font = _txtEmployeeStatus.font;
-                }
-
-                var labelRt = labelGo.GetComponent<RectTransform>();
-                labelRt.anchorMin = Vector2.zero;
-                labelRt.anchorMax = Vector2.one;
-                labelRt.offsetMin = Vector2.zero;
-                labelRt.offsetMax = Vector2.zero;
-            }
-
-            if (_btnKickEmployee != null && !_kickButtonListenerRegistered)
-            {
-                _btnKickEmployee.onClick.AddListener(OnClickKickEmployee);
-                _kickButtonListenerRegistered = true;
             }
 
             if (_txtErrorTip == null && _txtEmployeeStatus != null)
@@ -280,10 +227,6 @@ namespace JN.Client.UI
             {
                 var inOp = dayMgr != null && dayMgr.Phase == DayPhase.Operation;
                 _txtEmployeeStatus.gameObject.SetActive(inOp);
-                if (_btnKickEmployee != null)
-                {
-                    _btnKickEmployee.gameObject.SetActive(inOp);
-                }
 
                 if (inOp)
                 {
@@ -311,39 +254,9 @@ namespace JN.Client.UI
                         }
 
                         _txtEmployeeStatus.text = $"👤 员工: {active}/{total} 在岗 ({resting}人休息)";
-
-                        if (_btnKickEmployee != null)
-                        {
-                            _btnKickEmployee.interactable = resting > 0;
-                        }
                     }
                 }
             }
-        }
-
-        private void OnClickKickEmployee()
-        {
-            var player = DataManager.Instance.PlayerData;
-            if (player == null || player.Employees == null)
-            {
-                return;
-            }
-
-            var kicked = 0;
-            foreach (var emp in player.Employees)
-            {
-                if (emp == null || !emp.IsResting)
-                {
-                    continue;
-                }
-
-                emp.IsResting = false;
-                emp.Stamina = Mathf.Max(emp.Stamina, 1);
-                emp.KickedFromRest = true;
-                kicked++;
-            }
-
-            Debug.Log($"[Employee] 玩家踢醒了 {kicked} 个员工");
         }
 
         /// <summary>
