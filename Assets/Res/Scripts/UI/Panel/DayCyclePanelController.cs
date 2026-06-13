@@ -1,4 +1,5 @@
 using JN.Client.Manager;
+using JN.Client.Model;
 using QFramework;
 using TMPro;
 using UnityEngine;
