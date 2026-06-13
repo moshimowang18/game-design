@@ -46,6 +46,8 @@ namespace JN.Client.UI
         private Button _btnKickEmployee;
         private TextMeshProUGUI _txtKickBtnLabel;
         private bool _kickButtonListenerRegistered;
+        private TextMeshProUGUI _txtErrorTip;
+        private float _errorTipShowUntil;
 
         /// <summary>
         /// 面板初始化时绑定控件和事件。
@@ -202,6 +204,33 @@ namespace JN.Client.UI
                 _btnKickEmployee.onClick.AddListener(OnClickKickEmployee);
                 _kickButtonListenerRegistered = true;
             }
+
+            if (_txtErrorTip == null && _txtEmployeeStatus != null)
+            {
+                var go = Instantiate(_txtEmployeeStatus.gameObject, _txtEmployeeStatus.transform.parent);
+                go.name = "txt_ErrorTip";
+                _txtErrorTip = go.GetComponent<TextMeshProUGUI>();
+                _txtErrorTip.color = new Color(1f, 0.4f, 0.3f);
+                _txtErrorTip.fontSize = 22;
+                var rt = go.GetComponent<RectTransform>();
+                rt.anchoredPosition = _txtEmployeeStatus.rectTransform.anchoredPosition + new Vector2(0f, -80f);
+                go.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// 显示顶部短暂犯错提示（默认 3 秒）。
+        /// </summary>
+        public void ShowErrorTip(string message, float durationSec = 3f)
+        {
+            if (_txtErrorTip == null)
+            {
+                return;
+            }
+
+            _txtErrorTip.text = message;
+            _txtErrorTip.gameObject.SetActive(true);
+            _errorTipShowUntil = Time.time + durationSec;
         }
 
         /// <summary>
@@ -210,6 +239,11 @@ namespace JN.Client.UI
         private void RefreshDayCycleTexts()
         {
             EnsureDayCycleTexts();
+
+            if (_txtErrorTip != null && _txtErrorTip.gameObject.activeSelf && Time.time > _errorTipShowUntil)
+            {
+                _txtErrorTip.gameObject.SetActive(false);
+            }
 
             var dayMgr = TavernDayManager.Instance;
             if (txt_DayNumber != null && dayMgr?.CurrentDay != null)

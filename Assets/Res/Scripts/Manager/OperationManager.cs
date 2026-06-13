@@ -1,7 +1,7 @@
 using JN.Client;
 using JN.Client.Model;
-
 using JN.Client.Scene;
+using JN.Client.UI;
 
 using QFramework;
 
@@ -564,27 +564,89 @@ namespace JN.Client.Manager
 
 
         private void OnRealCustomerCheckout()
-
         {
-
             if (!_isOperating)
-
             {
-
                 return;
-
             }
 
-
-
             var sig = Signals.Get<TavernCustomerCheckoutSignal>();
+            var player = DataManager.Instance.PlayerData;
+            if (player == null)
+            {
+                return;
+            }
 
-            _totalCustomers += sig.GroupSize;
+            var groupSize = sig.GroupSize;
+            var income = sig.Income;
 
-            _satisfiedCustomers += sig.GroupSize;
+            EmployeeData kickedEmp = null;
+            var errorRate = 0;
+            foreach (var emp in player.Employees)
+            {
+                if (emp == null || !emp.KickedFromRest)
+                {
+                    continue;
+                }
 
-            _currentRevenue += sig.Income;
+                kickedEmp = emp;
+                if (emp.Stamina <= 0)
+                {
+                    errorRate = 60;
+                }
+                else if (emp.Stamina <= 1)
+                {
+                    errorRate = 30;
+                }
 
+                break;
+            }
+
+            var willError = kickedEmp != null && Random.Range(0, 100) < errorRate;
+
+            if (willError)
+            {
+                var typeA_BadReview = Random.Range(0, 2) == 0;
+
+                if (typeA_BadReview)
+                {
+                    _totalCustomers += groupSize;
+                    _negativeEventCount += groupSize;
+                    _currentRevenue += income;
+                    Debug.Log($"[Employee] 犯错A: {kickedEmp.Name} 服务出错，客人变差评 (groupSize={groupSize})");
+                }
+                else
+                {
+                    var penalty = Mathf.RoundToInt(income * 0.2f);
+                    DataManager.Instance.ChangeCoinNum(-penalty);
+                    _totalCustomers += groupSize;
+                    _satisfiedCustomers += groupSize;
+                    _currentRevenue += income - penalty;
+                    Debug.Log($"[Employee] 犯错D: {kickedEmp.Name} 算错账，少收{penalty}银两");
+                }
+
+                kickedEmp.KickedFromRest = false;
+
+                var hud = Object.FindObjectOfType<TavernStatusBarPanelController>();
+                if (hud != null)
+                {
+                    var tipText = typeA_BadReview
+                        ? $"⚠️ {kickedEmp.Name} 服务出错！"
+                        : $"⚠️ {kickedEmp.Name} 算错账，少收{Mathf.RoundToInt(income * 0.2f)}银两";
+                    hud.ShowErrorTip(tipText, 3f);
+                }
+            }
+            else
+            {
+                _totalCustomers += groupSize;
+                _satisfiedCustomers += groupSize;
+                _currentRevenue += income;
+
+                if (kickedEmp != null)
+                {
+                    kickedEmp.KickedFromRest = false;
+                }
+            }
         }
 
 
