@@ -89,6 +89,18 @@ namespace JN.Client.Manager
         {
             EnsureInitialized();
 
+            var player = DataManager.Instance.PlayerData;
+            if (player != null)
+            {
+                var remaining = player.GetTotalDishStock();
+                if (remaining > 0)
+                {
+                    Debug.Log($"[Day] 昨日剩余 {remaining} 份菜品变质丢弃");
+                }
+
+                player.ClearDishStock();
+            }
+
             currentDay.DayNumber = Mathf.Max(1, dayNumber);
             currentDay.CurrentPhase = DayPhase.Preparation;
             currentDay.OperationTimeLimit = 120f;
