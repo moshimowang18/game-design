@@ -113,6 +113,11 @@ namespace JN.Client.Manager
                 UIKit.OpenPanel<TavernStatusBarPanelController>(UILevel.Common);
             }
 
+            if (sceneName == "GamePlay_Tavern")
+            {
+                UIKit.OpenPanel<DayCyclePanelController>(UILevel.Common);
+            }
+
             if (UIKit.GetPanel<StartOpeningWindowController>() == null)
             {
                 UIKit.OpenPanel<StartOpeningWindowController>(UILevel.PopUI);
