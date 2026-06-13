@@ -3,6 +3,7 @@ using JN.Client.Model;
 using QFramework;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace JN.Client.UI
 {
@@ -11,15 +12,21 @@ namespace JN.Client.UI
     }
 
     /// <summary>
-    /// 日循环面板：准备阶段展示今日事件等信息。
+    /// 日循环面板：准备阶段展示今日事件、扩建厨房等信息。
     /// </summary>
     public class DayCyclePanelController : QFrameworkPanel<DayCyclePanelControllerData>
     {
+        private const int MaxKitchenLevel = 3;
+
         private TextMeshProUGUI _txtTitle;
         private TextMeshProUGUI _txtDayLabel;
         private TextMeshProUGUI _txtEventName;
         private TextMeshProUGUI _txtEventHint;
         private TextMeshProUGUI _txtFlowMultiplier;
+        private TextMeshProUGUI _txtKitchenLevel;
+        private TextMeshProUGUI _txtKitchenCost;
+        private Button _btnUpgradeKitchen;
+        private TextMeshProUGUI _txtBtnLabel;
         private GameObject _groupContent;
 
         /// <summary>
@@ -33,10 +40,19 @@ namespace JN.Client.UI
             _txtEventName = transform.Find("group_Content/group_EventInfo/txt_EventName")?.GetComponent<TextMeshProUGUI>();
             _txtEventHint = transform.Find("group_Content/group_EventInfo/txt_EventHint")?.GetComponent<TextMeshProUGUI>();
             _txtFlowMultiplier = transform.Find("group_Content/group_EventInfo/txt_FlowMultiplier")?.GetComponent<TextMeshProUGUI>();
+            _txtKitchenLevel = transform.Find("group_Content/group_KitchenUpgrade/txt_KitchenLevel")?.GetComponent<TextMeshProUGUI>();
+            _txtKitchenCost = transform.Find("group_Content/group_KitchenUpgrade/txt_KitchenCost")?.GetComponent<TextMeshProUGUI>();
+            _btnUpgradeKitchen = transform.Find("group_Content/group_KitchenUpgrade/btn_UpgradeKitchen")?.GetComponent<Button>();
+            _txtBtnLabel = transform.Find("group_Content/group_KitchenUpgrade/btn_UpgradeKitchen/txt_BtnLabel")?.GetComponent<TextMeshProUGUI>();
 
             if (_txtTitle != null)
             {
                 _txtTitle.text = "📅 今日";
+            }
+
+            if (_btnUpgradeKitchen != null)
+            {
+                _btnUpgradeKitchen.onClick.AddListener(OnClickUpgradeKitchen);
             }
 
             Debug.Log("[DayCyclePanel] OnPanelInit");
@@ -49,6 +65,17 @@ namespace JN.Client.UI
         protected override void OnPanelOpen(DayCyclePanelControllerData data)
         {
             Debug.Log("[DayCyclePanel] OnPanelOpen");
+        }
+
+        /// <summary>
+        /// 面板关闭时清理监听。
+        /// </summary>
+        protected override void OnPanelClose()
+        {
+            if (_btnUpgradeKitchen != null)
+            {
+                _btnUpgradeKitchen.onClick.RemoveListener(OnClickUpgradeKitchen);
+            }
         }
 
         private void Update()
@@ -123,6 +150,81 @@ namespace JN.Client.UI
                     _txtFlowMultiplier.text = "客流倍率: x1.0";
                 }
             }
+
+            RefreshKitchenUpgrade();
+        }
+
+        private void RefreshKitchenUpgrade()
+        {
+            var player = DataManager.Instance.PlayerData;
+            if (player == null)
+            {
+                return;
+            }
+
+            var currentLevel = player.TavernLevel;
+
+            if (_txtKitchenLevel != null)
+            {
+                _txtKitchenLevel.text = $"厨房等级: Lv.{currentLevel}";
+            }
+
+            if (currentLevel >= MaxKitchenLevel)
+            {
+                if (_txtKitchenCost != null)
+                {
+                    _txtKitchenCost.text = "已达最高级";
+                }
+
+                if (_btnUpgradeKitchen != null)
+                {
+                    _btnUpgradeKitchen.gameObject.SetActive(false);
+                }
+
+                return;
+            }
+
+            var upgradeCost = player.TavernLevel * 100;
+
+            if (_txtKitchenCost != null)
+            {
+                _txtKitchenCost.text = $"扩建需要: {upgradeCost}银两";
+            }
+
+            var canAfford = player.coinNum >= upgradeCost;
+            if (_btnUpgradeKitchen != null)
+            {
+                _btnUpgradeKitchen.gameObject.SetActive(true);
+                _btnUpgradeKitchen.interactable = canAfford;
+            }
+
+            if (_txtBtnLabel != null)
+            {
+                _txtBtnLabel.text = canAfford
+                    ? "扩建厨房"
+                    : $"扩建厨房（差{upgradeCost - player.coinNum}银两）";
+            }
+        }
+
+        private void OnClickUpgradeKitchen()
+        {
+            var player = DataManager.Instance.PlayerData;
+            if (player == null || player.TavernLevel >= MaxKitchenLevel)
+            {
+                Debug.Log("[DayCyclePanel] 扩建厨房: 失败");
+                return;
+            }
+
+            var upgradeCost = player.TavernLevel * 100;
+            if (player.coinNum < upgradeCost)
+            {
+                Debug.Log("[DayCyclePanel] 扩建厨房: 失败");
+                return;
+            }
+
+            player.coinNum -= upgradeCost;
+            TavernUpgradeManager.Instance.Upgrade();
+            Debug.Log("[DayCyclePanel] 扩建厨房: 成功");
         }
     }
 }
