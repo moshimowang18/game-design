@@ -178,12 +178,20 @@ namespace JN.Client.Manager
             }
 
             var boundCount = 0;
-            for (var i = 0; i < player.Employees.Count; i++)
+            for (int i = 0; i < player.Employees.Count; i++)
             {
                 if (i < visuals.Length)
                 {
                     player.Employees[i].VisualGO = visuals[i];
                     boundCount++;
+
+                    // 给 3D 模型挂载/绑定 RestBubble 组件
+                    var bubble = visuals[i].GetComponent<JN.Client.UI.EmployeeRestBubble>();
+                    if (bubble == null)
+                    {
+                        bubble = visuals[i].AddComponent<JN.Client.UI.EmployeeRestBubble>();
+                    }
+                    bubble.Bind(player.Employees[i]);
                 }
                 else
                 {
