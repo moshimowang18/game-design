@@ -27,7 +27,9 @@ namespace JN.Client.Manager
 
         private const float DefaultOperationDuration = 240f;
 
+        private const float StaminaRecoveryInterval = 20f;
 
+        private float _staminaRecoveryTimer;
 
         private float _operationTimeRemaining;
 
@@ -218,9 +220,43 @@ namespace JN.Client.Manager
 
                 Signals.Get<TavernCustomerAngryLeaveSignal>().AddListener(OnRealCustomerAngryLeave);
 
+                Signals.Get<TavernDishServedSignal>().AddListener(OnDishServed);
+
                 _signalsRegistered = true;
 
             }
+
+
+
+            if (player != null && player.Employees != null)
+
+            {
+
+                foreach (var emp in player.Employees)
+
+                {
+
+                    if (emp == null)
+
+                    {
+
+                        continue;
+
+                    }
+
+                    emp.Stamina = 3;
+
+                    emp.IsResting = false;
+
+                    emp.KickedFromRest = false;
+
+                }
+
+            }
+
+
+
+            ResetStaminaRecoveryTimer();
 
 
 
@@ -387,6 +423,8 @@ namespace JN.Client.Manager
 
                 Signals.Get<TavernCustomerAngryLeaveSignal>().RemoveListener(OnRealCustomerAngryLeave);
 
+                Signals.Get<TavernDishServedSignal>().RemoveListener(OnDishServed);
+
                 _signalsRegistered = false;
 
             }
@@ -411,6 +449,21 @@ namespace JN.Client.Manager
             var saveData = DataManager.Instance.SaveData;
             if (player != null)
             {
+                if (player.Employees != null)
+                {
+                    foreach (var emp in player.Employees)
+                    {
+                        if (emp == null)
+                        {
+                            continue;
+                        }
+
+                        emp.Stamina = 3;
+                        emp.IsResting = false;
+                        emp.KickedFromRest = false;
+                    }
+                }
+
                 var waste = player.GetTotalDishStock();
                 if (waste > 0)
                 {
@@ -496,6 +549,16 @@ namespace JN.Client.Manager
 
             }
 
+
+
+            if (TavernDayManager.Instance != null && TavernDayManager.Instance.Phase == DayPhase.Operation)
+
+            {
+
+                UpdateStaminaRecovery();
+
+            }
+
         }
 
 
@@ -545,6 +608,166 @@ namespace JN.Client.Manager
             _totalCustomers += sig.GroupSize;
 
             _negativeEventCount += sig.GroupSize;
+
+        }
+
+
+
+        private void OnDishServed()
+
+        {
+
+            if (!_isOperating)
+
+            {
+
+                return;
+
+            }
+
+
+
+            var player = DataManager.Instance.PlayerData;
+
+            if (player == null || player.Employees == null || player.Employees.Count == 0)
+
+            {
+
+                return;
+
+            }
+
+
+
+            EmployeeData target = null;
+
+            var maxStamina = -1;
+
+            foreach (var emp in player.Employees)
+
+            {
+
+                if (emp == null || emp.IsResting)
+
+                {
+
+                    continue;
+
+                }
+
+                if (emp.Stamina > maxStamina)
+
+                {
+
+                    maxStamina = emp.Stamina;
+
+                    target = emp;
+
+                }
+
+            }
+
+
+
+            if (target == null)
+
+            {
+
+                return;
+
+            }
+
+
+
+            target.Stamina = Mathf.Max(0, target.Stamina - 1);
+
+
+
+            if (target.Stamina == 0)
+
+            {
+
+                target.IsResting = true;
+
+                Debug.Log($"[Employee] {target.Name} 体力耗尽，自动休息");
+
+            }
+
+            else
+
+            {
+
+                Debug.Log($"[Employee] {target.Name} 上菜消耗，剩余体力{target.Stamina}");
+
+            }
+
+        }
+
+
+
+        /// <summary>
+
+        /// 重置体力恢复计时器（营业开始时调用）。
+
+        /// </summary>
+
+        public void ResetStaminaRecoveryTimer()
+
+        {
+
+            _staminaRecoveryTimer = 0f;
+
+        }
+
+
+
+        private void UpdateStaminaRecovery()
+
+        {
+
+            var player = DataManager.Instance.PlayerData;
+
+            if (player == null || player.Employees == null)
+
+            {
+
+                return;
+
+            }
+
+
+
+            _staminaRecoveryTimer += Time.deltaTime;
+
+            if (_staminaRecoveryTimer < StaminaRecoveryInterval)
+
+            {
+
+                return;
+
+            }
+
+            _staminaRecoveryTimer = 0f;
+
+
+
+            foreach (var emp in player.Employees)
+
+            {
+
+                if (emp == null || !emp.IsResting)
+
+                {
+
+                    continue;
+
+                }
+
+                emp.Stamina = Mathf.Min(3, emp.Stamina + 1);
+
+                Debug.Log($"[Employee] {emp.Name} 休息恢复，当前体力{emp.Stamina}");
+
+            }
 
         }
 

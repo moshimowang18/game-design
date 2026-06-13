@@ -186,7 +186,20 @@ namespace JN.Client.Scene
                     continue;
                 }
 
-                if (busyWaiters.Count >= Mathf.Max(1, GetGuideStaffVisuals(GuideWaiterVisualKey).Length))
+                var visualsLength = GetGuideStaffVisuals(GuideWaiterVisualKey).Length;
+
+                var activeWaiters = visualsLength;
+                var opMgr = OperationManager.Instance;
+                if (opMgr != null)
+                {
+                    var newSystemActive = opMgr.GetActiveWaiterCount();
+                    if (newSystemActive > 0)
+                    {
+                        activeWaiters = Mathf.Min(visualsLength, newSystemActive);
+                    }
+                }
+
+                if (busyWaiters.Count >= Mathf.Max(1, activeWaiters))
                 {
                     yield return wait;
                     continue;
