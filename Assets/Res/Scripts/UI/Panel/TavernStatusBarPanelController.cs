@@ -41,6 +41,7 @@ namespace JN.Client.UI
         private Button staffButton;
         private TextMeshProUGUI txt_DayNumber;
         private TextMeshProUGUI txt_OperationTimer;
+        private TextMeshProUGUI _txtCustomerStats;
 
         /// <summary>
         /// 面板初始化时绑定控件和事件。
@@ -128,6 +129,16 @@ namespace JN.Client.UI
                     topBarRoot,
                     runtimePos + new Vector2(200f, 0f));
             }
+
+            if (_txtCustomerStats == null && txt_OperationTimer != null && txt_RuntimeInfo != null)
+            {
+                var timerPos = txt_OperationTimer.rectTransform.anchoredPosition;
+                _txtCustomerStats = CreateDayCycleText(
+                    "txt_CustomerStats",
+                    txt_RuntimeInfo,
+                    topBarRoot,
+                    timerPos + new Vector2(0f, -80f));
+            }
         }
 
         /// <summary>
@@ -143,22 +154,30 @@ namespace JN.Client.UI
                 txt_DayNumber.text = $"📅 第{dayMgr.CurrentDay.DayNumber}天/10";
             }
 
-            if (txt_OperationTimer == null)
+            if (txt_OperationTimer != null)
             {
-                return;
+                var inOperation = dayMgr != null && dayMgr.Phase == DayPhase.Operation;
+                txt_OperationTimer.gameObject.SetActive(inOperation);
+                if (inOperation && OperationManager.Instance != null)
+                {
+                    var sec = Mathf.CeilToInt(OperationManager.Instance.TimeRemaining);
+                    var minutes = sec / 60;
+                    var seconds = sec % 60;
+                    txt_OperationTimer.text = $"⏱ {minutes:D2}:{seconds:D2}";
+                }
             }
 
-            var inOperation = dayMgr != null && dayMgr.Phase == DayPhase.Operation;
-            txt_OperationTimer.gameObject.SetActive(inOperation);
-            if (!inOperation || OperationManager.Instance == null)
+            if (_txtCustomerStats != null)
             {
-                return;
+                var inOp = dayMgr != null && dayMgr.Phase == DayPhase.Operation;
+                _txtCustomerStats.gameObject.SetActive(inOp);
+                if (inOp && OperationManager.Instance != null)
+                {
+                    var op = OperationManager.Instance;
+                    _txtCustomerStats.text =
+                        $"客流: {op.TotalCustomers}人 (满意{op.SatisfiedCustomers} | 生气{op.NegativeEventCount})";
+                }
             }
-
-            var sec = Mathf.CeilToInt(OperationManager.Instance.TimeRemaining);
-            var minutes = sec / 60;
-            var seconds = sec % 60;
-            txt_OperationTimer.text = $"⏱ {minutes:D2}:{seconds:D2}";
         }
 
         /// <summary>
