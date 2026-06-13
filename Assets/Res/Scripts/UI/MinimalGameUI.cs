@@ -1,8 +1,5 @@
 using JN.Client.Model;
-using JN.Client.UI;
-using QFramework;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace JN.Client.Manager
 {
@@ -51,32 +48,6 @@ namespace JN.Client.Manager
             DontDestroyOnLoad(gameObject);
         }
 
-        private void OnEnable()
-        {
-            if (s_instance == this)
-            {
-                SceneManager.sceneLoaded += HandleSceneLoaded;
-            }
-        }
-
-        private void OnDisable()
-        {
-            if (s_instance == this)
-            {
-                SceneManager.sceneLoaded -= HandleSceneLoaded;
-            }
-        }
-
-        private void HandleSceneLoaded(UnityEngine.SceneManagement.Scene scene, LoadSceneMode mode)
-        {
-            if (s_instance != this)
-            {
-                return;
-            }
-
-            CloseBlockingTavernPanels();
-        }
-
         private void Start()
         {
             if (s_instance != this)
@@ -84,7 +55,6 @@ namespace JN.Client.Manager
                 return;
             }
 
-            CloseBlockingTavernPanels();
             DataManager.Instance.Init();
 
             var player = DataManager.Instance.PlayerData;
@@ -164,6 +134,8 @@ namespace JN.Client.Manager
 
             GUILayout.Label("【准备阶段】", titleStyle);
             GUILayout.Space(12f * uiScale);
+            GUILayout.Label("<color=yellow>→ 准备就绪后请点击底部「开业」按钮</color>", bodyStyle);
+            GUILayout.Space(12f * uiScale);
 
             if (dayData.DayNumber == 1)
             {
@@ -182,25 +154,6 @@ namespace JN.Client.Manager
 
             GUILayout.Space(16f * uiScale);
             DrawDishSelection(player);
-
-            GUILayout.Space(16f * uiScale);
-            GUILayout.Label($"桌位: {player.MaxTables}桌 (基础{player.BaseTables} + 扩建{player.PurchasedTables})", bodyStyle);
-
-            int tableCost = player.TablePrice;
-            GUILayout.Label($"购买下一桌需要: {tableCost} 银两", bodyStyle);
-            if (player.coinNum >= tableCost)
-            {
-                if (GUILayout.Button($"添置桌位 ({tableCost} 银两)", buttonStyle, GUILayout.Height(72f * uiScale)))
-                {
-                    player.coinNum -= tableCost;
-                    player.PurchasedTables++;
-                    DataManager.Instance.SaveGame();
-                }
-            }
-            else
-            {
-                GUILayout.Label("银两不足", bodyStyle);
-            }
 
             GUILayout.Space(16f * uiScale);
             int kitchenUpgradeCost = player.TavernLevel * 100;
@@ -224,12 +177,6 @@ namespace JN.Client.Manager
             else
             {
                 GUILayout.Label("厨房已满级", bodyStyle);
-            }
-
-            GUILayout.Space(16f * uiScale);
-            if (GUILayout.Button("开始营业！", buttonStyle, GUILayout.Height(88f * uiScale)))
-            {
-                TavernDayManager.Instance.EnterOperationPhase();
             }
 
             GUILayout.Space(20f * uiScale);
@@ -417,17 +364,6 @@ namespace JN.Client.Manager
             };
 
             stylesReady = true;
-        }
-
-        /// <summary>
-        /// 关闭会挡住 IMGUI 的老酒楼全屏弹窗。
-        /// </summary>
-        private static void CloseBlockingTavernPanels()
-        {
-            if (UIKit.GetPanel<StartOpeningWindowController>() != null)
-            {
-                UIKit.ClosePanel<StartOpeningWindowController>();
-            }
         }
 
         private static void EnsureDemoData()
