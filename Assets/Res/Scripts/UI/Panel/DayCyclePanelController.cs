@@ -456,7 +456,7 @@ namespace JN.Client.UI
                 var player = DataManager.Instance.PlayerData;
                 if (player != null)
                 {
-                    _txtDishHeader.text = $"明日菜品 ({player.SelectedDishes.Count}/{player.MaxDishSlots}槽位)";
+                    _txtDishHeader.text = $"备菜库存 (合计 {player.GetTotalDishStock()} 份)";
                 }
             }
         }
@@ -472,15 +472,19 @@ namespace JN.Client.UI
             unchecked
             {
                 var hash = 17;
-                hash = (hash * 31) + player.MaxDishSlots;
+                hash = (hash * 31) + player.coinNum;
                 foreach (var dishId in player.UnlockedDishes)
                 {
                     hash = (hash * 31) + (dishId?.GetHashCode() ?? 0);
                 }
 
-                foreach (var dishId in player.SelectedDishes)
+                if (player.DishStock != null)
                 {
-                    hash = (hash * 31) + (dishId?.GetHashCode() ?? 0);
+                    foreach (var kv in player.DishStock)
+                    {
+                        hash = (hash * 31) + (kv.Key?.GetHashCode() ?? 0);
+                        hash = (hash * 31) + kv.Value;
+                    }
                 }
 
                 return hash;
@@ -570,7 +574,8 @@ namespace JN.Client.UI
 
             if (_txtDishHeader != null)
             {
-                _txtDishHeader.text = $"明日菜品 ({player.SelectedDishes.Count}/{player.MaxDishSlots}槽位)";
+                var totalStock = player.GetTotalDishStock();
+                _txtDishHeader.text = $"备菜库存 (合计 {totalStock} 份)";
             }
 
             foreach (var item in _dishItems)
@@ -606,7 +611,7 @@ namespace JN.Client.UI
                 var btnAction = go.transform.Find("btn_Action")?.GetComponent<Button>();
                 var btnLabel = go.transform.Find("btn_Action/txt_BtnLabel")?.GetComponent<TextMeshProUGUI>();
 
-                var isSelected = player.SelectedDishes.Contains(dish.DishId);
+                var currentStock = player.GetDishStock(dish.DishId);
 
                 if (txtName != null)
                 {
@@ -615,38 +620,34 @@ namespace JN.Client.UI
 
                 if (txtCost != null)
                 {
-                    txtCost.text = $"进货: {dish.IngredientCost}银两";
+                    txtCost.text = $"进货: {dish.IngredientCost}银两/份";
                 }
 
                 if (txtStatus != null)
                 {
-                    txtStatus.text = isSelected ? "<color=green>已选</color>" : "未选";
+                    if (currentStock > 0)
+                    {
+                        txtStatus.text = $"<color=green>库存 {currentStock}</color>";
+                    }
+                    else
+                    {
+                        txtStatus.text = "<color=#888>未备</color>";
+                    }
                 }
 
                 if (btnLabel != null)
                 {
-                    btnLabel.text = isSelected ? "取消" : "选择";
+                    btnLabel.text = "备菜+1";
                 }
 
                 if (btnAction != null)
                 {
-                    bool canClick;
-                    if (isSelected)
-                    {
-                        canClick = true;
-                    }
-                    else
-                    {
-                        canClick = player.SelectedDishes.Count < player.MaxDishSlots
-                                   && player.coinNum >= dish.IngredientCost;
-                    }
-
-                    btnAction.interactable = canClick;
+                    btnAction.interactable = player.coinNum >= dish.IngredientCost;
 
                     var capturedDishId = dish.DishId;
-                    var capturedIsSelected = isSelected;
+                    var capturedCost = dish.IngredientCost;
                     btnAction.onClick.RemoveAllListeners();
-                    btnAction.onClick.AddListener(() => OnClickDishAction(capturedDishId, capturedIsSelected));
+                    btnAction.onClick.AddListener(() => OnClickStockDish(capturedDishId, capturedCost));
                 }
 
                 _dishItems.Add(go);
@@ -664,7 +665,7 @@ namespace JN.Client.UI
             _lastDishListStateHash = ComputeDishListStateHash();
         }
 
-        private void OnClickDishAction(string dishId, bool currentlySelected)
+        private void OnClickStockDish(string dishId, int cost)
         {
             var player = DataManager.Instance.PlayerData;
             if (player == null)
@@ -672,51 +673,16 @@ namespace JN.Client.UI
                 return;
             }
 
-            DishData dish = null;
-            var allDishes = EventSystemManager.Instance?.GetAllDishes();
-            if (allDishes != null)
+            if (player.coinNum < cost)
             {
-                foreach (var d in allDishes)
-                {
-                    if (d != null && d.DishId == dishId)
-                    {
-                        dish = d;
-                        break;
-                    }
-                }
-            }
-
-            if (dish == null)
-            {
+                Debug.Log($"[DayCyclePanel] 钱不够: 需要{cost}, 当前{player.coinNum}");
                 return;
             }
 
-            if (currentlySelected)
-            {
-                player.coinNum += dish.IngredientCost;
-                player.SelectedDishes.Remove(dishId);
-                DataManager.Instance.SaveGame();
-                Debug.Log($"[DayCyclePanel] 取消菜品: {dishId}");
-            }
-            else
-            {
-                if (player.SelectedDishes.Count >= player.MaxDishSlots)
-                {
-                    Debug.Log("[DayCyclePanel] 槽位已满");
-                    return;
-                }
+            DataManager.Instance.ChangeCoinNum(-cost);
+            player.AddDishStock(dishId, 1);
 
-                if (player.coinNum < dish.IngredientCost)
-                {
-                    Debug.Log($"[DayCyclePanel] 钱不够: 需要{dish.IngredientCost}, 当前{player.coinNum}");
-                    return;
-                }
-
-                player.coinNum -= dish.IngredientCost;
-                player.SelectedDishes.Add(dishId);
-                DataManager.Instance.SaveGame();
-                Debug.Log($"[DayCyclePanel] 选择菜品: {dishId}, 扣费{dish.IngredientCost}");
-            }
+            Debug.Log($"[DayCyclePanel] 备菜: {dishId} +1, 当前库存={player.GetDishStock(dishId)}");
 
             RefreshDishList();
         }
