@@ -102,7 +102,9 @@ namespace JN.Client.Manager
 
             {
 
-                saveData.tavern.availableDishes = player.SelectedDishes.Count;
+                var totalStock = player.GetTotalDishStock();
+                saveData.tavern.availableDishes = totalStock;
+                Debug.Log($"[OpMgr] 营业开始,同步备菜库存到老系统: {totalStock}份");
 
             }
 
@@ -350,7 +352,22 @@ namespace JN.Client.Manager
 
             _isOperating = false;
 
+            var player = DataManager.Instance.PlayerData;
+            var saveData = DataManager.Instance.SaveData;
+            if (player != null)
+            {
+                var waste = player.GetTotalDishStock();
+                if (waste > 0)
+                {
+                    Debug.Log($"[OpMgr] 营业结束，剩余 {waste} 份菜品变质丢弃");
+                }
 
+                player.ClearDishStock();
+                if (saveData?.tavern != null)
+                {
+                    saveData.tavern.availableDishes = 0;
+                }
+            }
 
             var activeEvent = EventSystemManager.Instance.GetEventById(
 
