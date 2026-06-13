@@ -39,6 +39,8 @@ namespace JN.Client.UI
         private Sprite customerEnterDefaultFillSprite;
         private Sprite customerEnterQueueFillSprite;
         private Button staffButton;
+        private TextMeshProUGUI txt_DayNumber;
+        private TextMeshProUGUI txt_OperationTimer;
 
         /// <summary>
         /// 面板初始化时绑定控件和事件。
@@ -50,6 +52,7 @@ namespace JN.Client.UI
             EnsureChangeGoldText();
             EnsureCustomerEnterProgress();
             EnsureBottomButtons();
+            EnsureDayCycleTexts();
 
             // txt_Task 已不再显示，主线任务文案统一移交给 StartOpeningWindowController.GuideTaskPanel。
             if (txt_Task != null)
@@ -95,6 +98,99 @@ namespace JN.Client.UI
         private void Update()
         {
             RefreshCustomerEnterProgress();
+            RefreshDayCycleTexts();
+        }
+
+        /// <summary>
+        /// 运行时创建日循环顶栏文本（天数、营业倒计时），避免改 Prefab。
+        /// </summary>
+        private void EnsureDayCycleTexts()
+        {
+            topBarRoot ??= transform.Find("group_TopBar") as RectTransform;
+            if (topBarRoot == null)
+            {
+                return;
+            }
+
+            if (txt_DayNumber == null)
+            {
+                var goldText = txt_GoldNum
+                               ?? topBarRoot.Find("@group_GoldNum/@txt_GoldNum")?.GetComponent<TextMeshProUGUI>();
+                txt_DayNumber = CreateDayCycleText("txt_DayNumber", goldText, topBarRoot, new Vector2(150f, 0f));
+            }
+
+            if (txt_OperationTimer == null && txt_RuntimeInfo != null)
+            {
+                var runtimePos = txt_RuntimeInfo.rectTransform.anchoredPosition;
+                txt_OperationTimer = CreateDayCycleText(
+                    "txt_OperationTimer",
+                    txt_RuntimeInfo,
+                    topBarRoot,
+                    runtimePos + new Vector2(200f, 0f));
+            }
+        }
+
+        /// <summary>
+        /// 刷新第 X 天与营业倒计时。
+        /// </summary>
+        private void RefreshDayCycleTexts()
+        {
+            EnsureDayCycleTexts();
+
+            var dayMgr = TavernDayManager.Instance;
+            if (txt_DayNumber != null && dayMgr?.CurrentDay != null)
+            {
+                txt_DayNumber.text = $"📅 第{dayMgr.CurrentDay.DayNumber}天/10";
+            }
+
+            if (txt_OperationTimer == null)
+            {
+                return;
+            }
+
+            var inOperation = dayMgr != null && dayMgr.Phase == DayPhase.Operation;
+            txt_OperationTimer.gameObject.SetActive(inOperation);
+            if (!inOperation || OperationManager.Instance == null)
+            {
+                return;
+            }
+
+            var sec = Mathf.CeilToInt(OperationManager.Instance.TimeRemaining);
+            var minutes = sec / 60;
+            var seconds = sec % 60;
+            txt_OperationTimer.text = $"⏱ {minutes:D2}:{seconds:D2}";
+        }
+
+        /// <summary>
+        /// 复制现有 TMP 文本作为模板，保持字体样式一致。
+        /// </summary>
+        private static TextMeshProUGUI CreateDayCycleText(
+            string nodeName,
+            TextMeshProUGUI template,
+            RectTransform parent,
+            Vector2 anchoredPosition)
+        {
+            if (template == null || parent == null)
+            {
+                return null;
+            }
+
+            var existing = parent.Find(nodeName)?.GetComponent<TextMeshProUGUI>();
+            if (existing != null)
+            {
+                return existing;
+            }
+
+            var instance = Object.Instantiate(template.gameObject, parent);
+            instance.name = nodeName;
+            var text = instance.GetComponent<TextMeshProUGUI>();
+            var rectTransform = instance.GetComponent<RectTransform>();
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            rectTransform.anchoredPosition = anchoredPosition;
+            text.raycastTarget = false;
+            return text;
         }
 
         /// <summary>
