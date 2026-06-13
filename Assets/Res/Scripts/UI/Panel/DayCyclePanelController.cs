@@ -26,6 +26,11 @@ namespace JN.Client.UI
         private const float TitleHeight = 40f;
         private const float EventSectionHeight = 140f;
         private const float KitchenSectionHeight = 104f;
+        private const float EmployeeSectionMinHeight = 100f;
+        private const float EmployeeHeaderHeight = 24f;
+        private const float EmployeeRowHeight = 22f;
+        private const float EmployeeRowSpacing = 4f;
+        private const float EmployeeHintHeight = 18f;
         private const float DishHeaderHeight = 30f;
         private const float DishRowHeight = 50f;
         private const float DishRowSpacing = 4f;
@@ -42,12 +47,17 @@ namespace JN.Client.UI
         private Button _btnUpgradeKitchen;
         private TextMeshProUGUI _txtBtnLabel;
         private TextMeshProUGUI _txtDishHeader;
+        private TextMeshProUGUI _txtEmployeeHeader;
+        private Transform _employeeListContent;
+        private GameObject _employeeItemTemplate;
+        private readonly List<GameObject> _employeeItems = new();
         private Transform _dishListContent;
         private GameObject _dishItemTemplate;
         private readonly List<GameObject> _dishItems = new();
         private GameObject _groupContent;
         private RectTransform _groupEventInfo;
         private RectTransform _groupKitchenUpgrade;
+        private RectTransform _groupEmployees;
         private RectTransform _groupDishSelection;
         private RectTransform _scrollDishList;
         private int _lastDishListStateHash = int.MinValue;
@@ -62,6 +72,7 @@ namespace JN.Client.UI
             _groupContent = transform.Find("group_Content")?.gameObject;
             _groupEventInfo = transform.Find("group_Content/group_EventInfo") as RectTransform;
             _groupKitchenUpgrade = transform.Find("group_Content/group_KitchenUpgrade") as RectTransform;
+            _groupEmployees = transform.Find("group_Content/group_Employees") as RectTransform;
             _groupDishSelection = transform.Find("group_Content/group_DishSelection") as RectTransform;
             _scrollDishList = transform.Find("group_Content/group_DishSelection/scroll_DishList") as RectTransform;
             _txtTitle = transform.Find("group_Content/txt_Title")?.GetComponent<TextMeshProUGUI>();
@@ -74,6 +85,15 @@ namespace JN.Client.UI
             _btnUpgradeKitchen = transform.Find("group_Content/group_KitchenUpgrade/btn_UpgradeKitchen")?.GetComponent<Button>();
             _txtBtnLabel = transform.Find("group_Content/group_KitchenUpgrade/btn_UpgradeKitchen/txt_BtnLabel")?.GetComponent<TextMeshProUGUI>();
             _txtDishHeader = transform.Find("group_Content/group_DishSelection/txt_DishHeader")?.GetComponent<TextMeshProUGUI>();
+            _txtEmployeeHeader = transform.Find("group_Content/group_Employees/txt_EmployeeHeader")?.GetComponent<TextMeshProUGUI>();
+            _employeeListContent = transform.Find("group_Content/group_Employees");
+            var empTemplate = transform.Find("group_Content/group_Employees/EmployeeItemTemplate");
+            if (empTemplate != null)
+            {
+                _employeeItemTemplate = empTemplate.gameObject;
+                _employeeItemTemplate.SetActive(false);
+            }
+
             _dishListContent = transform.Find("group_Content/group_DishSelection/scroll_DishList/Viewport/Content");
 
             if (_dishListContent != null)
@@ -146,6 +166,7 @@ namespace JN.Client.UI
             DisableLayoutOn(_groupContent);
             DisableLayoutOn(_groupEventInfo?.gameObject);
             DisableLayoutOn(_groupKitchenUpgrade?.gameObject);
+            DisableLayoutOn(_groupEmployees?.gameObject);
             DisableLayoutOn(_groupDishSelection?.gameObject);
             DisableLayoutOn(_dishListContent?.gameObject);
 
@@ -212,6 +233,14 @@ namespace JN.Client.UI
                 y += KitchenSectionHeight + SectionSpacing;
             }
 
+            if (_groupEmployees != null)
+            {
+                var employeeSectionHeight = ComputeEmployeeSectionHeight();
+                PlaceTopBand(_groupEmployees, y, employeeSectionHeight);
+                LayoutEmployeesSection(employeeSectionHeight);
+                y += employeeSectionHeight + SectionSpacing;
+            }
+
             if (_groupDishSelection != null)
             {
                 var dishSectionHeight = PanelSize.y - y - ContentPadBottom;
@@ -243,6 +272,40 @@ namespace JN.Client.UI
             PlaceTopBand(_txtKitchenLevel?.rectTransform, 0f, levelHeight, 0f, 0f, _groupKitchenUpgrade);
             PlaceTopBand(_txtKitchenCost?.rectTransform, levelHeight + lineSpacing, costHeight, 0f, 0f, _groupKitchenUpgrade);
             PlaceTopBand(_btnUpgradeKitchen?.transform as RectTransform, levelHeight + lineSpacing + costHeight + lineSpacing, buttonHeight, 0f, 0f, _groupKitchenUpgrade);
+        }
+
+        private float ComputeEmployeeSectionHeight()
+        {
+            var player = DataManager.Instance.PlayerData;
+            var count = player?.Employees?.Count ?? 0;
+            var itemsHeight = count > 0 ? count * (EmployeeRowHeight + EmployeeRowSpacing) : 0f;
+            var contentHeight = EmployeeHeaderHeight + EmployeeRowSpacing + itemsHeight + EmployeeRowSpacing + EmployeeHintHeight;
+            return Mathf.Max(EmployeeSectionMinHeight, contentHeight);
+        }
+
+        private void LayoutEmployeesSection(float sectionHeight)
+        {
+            var y = 0f;
+            PlaceTopBand(_txtEmployeeHeader?.rectTransform, y, EmployeeHeaderHeight, 0f, 0f, _groupEmployees);
+            y += EmployeeHeaderHeight + EmployeeRowSpacing;
+
+            for (var i = 0; i < _employeeItems.Count; i++)
+            {
+                if (_employeeItems[i] != null && _employeeItems[i].transform is RectTransform rowRect)
+                {
+                    PlaceTopBand(rowRect, y, EmployeeRowHeight, 0f, 0f, _groupEmployees);
+                    y += EmployeeRowHeight + EmployeeRowSpacing;
+                }
+            }
+
+            var hintY = Mathf.Max(y, sectionHeight - EmployeeHintHeight);
+            PlaceTopBand(
+                _employeeListContent?.Find("txt_EmployeeHint") as RectTransform,
+                hintY,
+                EmployeeHintHeight,
+                0f,
+                0f,
+                _groupEmployees);
         }
 
         private void LayoutDishSelectionSection(float sectionHeight)
@@ -459,6 +522,8 @@ namespace JN.Client.UI
                     _txtDishHeader.text = $"备菜库存 (合计 {player.GetTotalDishStock()} 份)";
                 }
             }
+
+            RefreshEmployeeList();
         }
 
         private int ComputeDishListStateHash()
@@ -685,6 +750,79 @@ namespace JN.Client.UI
             Debug.Log($"[DayCyclePanel] 备菜: {dishId} +1, 当前库存={player.GetDishStock(dishId)}");
 
             RefreshDishList();
+        }
+
+        private void RefreshEmployeeList()
+        {
+            var player = DataManager.Instance.PlayerData;
+            if (player == null || _employeeItemTemplate == null || _employeeListContent == null)
+            {
+                return;
+            }
+
+            var count = player.Employees != null ? player.Employees.Count : 0;
+            var maxCount = PlayerModel.MaxEmployeeCount;
+
+            if (_txtEmployeeHeader != null)
+            {
+                _txtEmployeeHeader.text = $"员工 ({count}/{maxCount})";
+            }
+
+            foreach (var item in _employeeItems)
+            {
+                if (item != null)
+                {
+                    Destroy(item);
+                }
+            }
+
+            _employeeItems.Clear();
+
+            if (player.Employees == null)
+            {
+                ApplyManualPanelLayout();
+                return;
+            }
+
+            foreach (var emp in player.Employees)
+            {
+                if (emp == null)
+                {
+                    continue;
+                }
+
+                var go = Instantiate(_employeeItemTemplate, _employeeListContent);
+                go.SetActive(true);
+                go.name = $"EmployeeItem_{emp.Name}";
+
+                var txtName = go.transform.Find("txt_EmployeeName")?.GetComponent<TextMeshProUGUI>();
+                var txtStamina = go.transform.Find("txt_EmployeeStamina")?.GetComponent<TextMeshProUGUI>();
+
+                if (txtName != null)
+                {
+                    txtName.text = emp.Name;
+                }
+
+                if (txtStamina != null)
+                {
+                    var stars = string.Empty;
+                    for (var i = 0; i < emp.Stamina; i++)
+                    {
+                        stars += "★";
+                    }
+
+                    for (var i = emp.Stamina; i < 3; i++)
+                    {
+                        stars += "☆";
+                    }
+
+                    txtStamina.text = $"体力 {stars}";
+                }
+
+                _employeeItems.Add(go);
+            }
+
+            ApplyManualPanelLayout();
         }
     }
 }
