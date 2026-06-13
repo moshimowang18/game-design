@@ -137,11 +137,6 @@ namespace JN.Client.Manager
 
             phase = DayPhase.Preparation;
 
-            if (DataManager.Instance.PlayerData != null)
-            {
-                DataManager.Instance.PlayerData.SelectedDishes.Clear();
-            }
-
             EnsureTavernClosedForDayCycle();
             SyncToSaveData();
             DataManager.Instance.SaveGame();

@@ -130,7 +130,6 @@ namespace JN.Client.Manager
             }
 
             player.UnlockedDishes.RemoveAll(id => GetRequiredKitchenLevel(id) > kitchenLevel);
-            player.SelectedDishes.RemoveAll(id => !player.UnlockedDishes.Contains(id));
         }
 
         /// <summary>

@@ -8,7 +8,7 @@ namespace JN.Client.Manager
     /// <summary>
     /// 老酒楼实时玩法（TavernSceneManager）专用运行时 API。
     /// 日循环系统请使用 TavernDayManager / OperationManager 与 PlayerModel.gameDay 数据。
-    /// 以下方法保留给场景内 3D 客人/桌位演出，不与新日循环菜品槽位（SelectedDishes）混用。
+    /// 以下方法保留给场景内 3D 客人/桌位演出，不与新日循环备菜库存（DishStock）混用。
     /// </summary>
     public partial class DataManager
     {

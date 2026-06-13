@@ -1,6 +1,5 @@
 using JN.Client.Model;
 using UnityEngine;
-
 namespace JN.Client.Manager
 {
     [DefaultExecutionOrder(-100)]
@@ -19,11 +18,7 @@ namespace JN.Client.Manager
         private GUIStyle bodyStyle;
         private GUIStyle headerStyle;
         private GUIStyle buttonStyle;
-        private GUIStyle smallButtonStyle;
         private bool stylesReady;
-        private Vector2 _dishScrollPos;
-        private Vector2 _prepScrollPos;
-
         /// <summary>
         /// 挂在场景相机上的实例会迁移到常驻 Host，避免切场景后 IMGUI 消失。
         /// </summary>
@@ -62,7 +57,6 @@ namespace JN.Client.Manager
             {
                 player.coinNum = 30;
                 player.CurrentDay = 1;
-                player.SelectedDishes.Clear();
                 player.UnlockedDishes.Clear();
                 player.UnlockedDishes.Add("rice");
                 player.UnlockedDishes.Add("tofu");
@@ -92,6 +86,12 @@ namespace JN.Client.Manager
             EnsureStyles();
             GUI.depth = 9999;
 
+            var dayMgr = TavernDayManager.Instance;
+            if (dayMgr == null)
+            {
+                return;
+            }
+
             const float panelWidth = 500f;
             const float panelHeight = 800f;
             var panelRect = new Rect(20f, 20f, panelWidth, panelHeight);
@@ -105,7 +105,6 @@ namespace JN.Client.Manager
 
             GUILayout.Space(12f * uiScale);
 
-            var dayMgr = TavernDayManager.Instance;
             var player = DataManager.Instance.PlayerData;
             var dayData = dayMgr.CurrentDay;
 
@@ -114,7 +113,7 @@ namespace JN.Client.Manager
 
             if (dayMgr.Phase == DayPhase.Preparation)
             {
-                DrawPreparationPhase(dayData, player);
+                DrawPreparationPhase();
             }
             else if (dayMgr.Phase == DayPhase.Operation)
             {
@@ -128,65 +127,23 @@ namespace JN.Client.Manager
             GUILayout.EndArea();
         }
 
-        private void DrawPreparationPhase(GameDayData dayData, PlayerModel player)
+        private void DrawPreparationPhase()
         {
-            _prepScrollPos = GUILayout.BeginScrollView(_prepScrollPos);
-
-            GUILayout.Label("【准备阶段】", titleStyle);
-            GUILayout.Space(12f * uiScale);
-            GUILayout.Label("<color=yellow>→ 准备就绪后请点击底部「开业」按钮</color>", bodyStyle);
-            GUILayout.Space(12f * uiScale);
-
-            if (dayData.DayNumber == 1)
+            GUILayout.Label("【准备阶段】UI在左侧黑色面板", new GUIStyle(GUI.skin.label) { fontSize = 14 });
+            GUILayout.Space(10);
+            if (GUILayout.Button("重置游戏（调试）", GUILayout.Height(30)))
             {
-                GUILayout.Label("<color=cyan>第1天提示：选菜要花进货费，扩建桌位才能接更多客人，开始营业前看好今日事件！</color>", bodyStyle);
-                GUILayout.Space(12f * uiScale);
-            }
-
-            var evtId = EventSystemManager.Instance.GetTodaysEventId(dayData.DayNumber);
-            var evt = EventSystemManager.Instance.GetEventById(evtId);
-            if (evt != null)
-            {
-                GUILayout.Label($"今日事件: {evt.EventName}", bodyStyle);
-                GUILayout.Label($"  策略提示: {evt.StrategicHint}", bodyStyle);
-                GUILayout.Label($"  客流倍率: x{dayData.GuestFlowMultiplier:F1}", bodyStyle);
-            }
-
-            GUILayout.Space(16f * uiScale);
-            DrawDishSelection(player);
-
-            GUILayout.Space(16f * uiScale);
-            int kitchenUpgradeCost = player.TavernLevel * 100;
-            GUILayout.Label($"厨房等级: {player.TavernLevel}", bodyStyle);
-            if (player.TavernLevel < 3)
-            {
-                GUILayout.Label($"升级厨房需要: {kitchenUpgradeCost} 银两", bodyStyle);
-                if (player.coinNum >= kitchenUpgradeCost)
+                var player = DataManager.Instance.PlayerData;
+                if (player == null)
                 {
-                    if (GUILayout.Button($"扩建厨房 ({kitchenUpgradeCost} 银两)", buttonStyle, GUILayout.Height(72f * uiScale)))
-                    {
-                        player.coinNum -= kitchenUpgradeCost;
-                        TavernUpgradeManager.Instance.Upgrade();
-                    }
+                    return;
                 }
-                else
-                {
-                    GUILayout.Label("银两不足", bodyStyle);
-                }
-            }
-            else
-            {
-                GUILayout.Label("厨房已满级", bodyStyle);
-            }
 
-            GUILayout.Space(20f * uiScale);
-            if (GUILayout.Button("重置游戏（调试）", buttonStyle, GUILayout.Height(72f * uiScale)))
-            {
                 player.coinNum = 30;
                 player.CurrentDay = 1;
                 player.TavernLevel = 1;
                 player.PurchasedTables = 0;
-                player.SelectedDishes.Clear();
+                player.ClearDishStock();
                 player.UnlockedDishes.Clear();
                 player.UnlockedDishes.Add("rice");
                 player.UnlockedDishes.Add("tofu");
@@ -195,66 +152,6 @@ namespace JN.Client.Manager
                 EnsureDemoData();
                 TavernDayManager.Instance.StartNewDay(1);
             }
-
-            GUILayout.EndScrollView();
-        }
-
-        private void DrawDishSelection(PlayerModel player)
-        {
-            var dishManager = EventSystemManager.Instance;
-            GUILayout.Label($"明日菜品 (已选 {player.SelectedDishes.Count}/{player.MaxDishSlots} 槽位):", bodyStyle);
-
-            _dishScrollPos = GUILayout.BeginScrollView(_dishScrollPos, GUILayout.Height(180));
-
-            foreach (var dish in dishManager.GetAllDishes())
-            {
-                if (dish == null)
-                {
-                    continue;
-                }
-
-                int requiredLevel = dishManager.GetRequiredKitchenLevel(dish.DishId);
-                bool unlocked = player.UnlockedDishes.Contains(dish.DishId);
-                string levelHint = requiredLevel > player.TavernLevel ? $" [{requiredLevel}级厨房]" : string.Empty;
-                string eventTag = string.IsNullOrEmpty(dish.EventDishTag) ? string.Empty : $" [{dish.EventDishTag}]";
-                string dishInfo = $"{dish.DishName} (售{Mathf.RoundToInt(dish.BasePrice)} 进{dish.IngredientCost} | {Mathf.RoundToInt(dish.CookTime)}秒{eventTag}){levelHint}";
-
-                if (!unlocked)
-                {
-                    GUILayout.Label($"  ☐ {dishInfo}", bodyStyle);
-                    continue;
-                }
-
-                bool selected = player.SelectedDishes.Contains(dish.DishId);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(selected ? $"  ☑ {dishInfo}" : $"  ☐ {dishInfo}", bodyStyle, GUILayout.ExpandWidth(true));
-
-                if (selected)
-                {
-                    if (GUILayout.Button("取消", smallButtonStyle, GUILayout.Width(100f * uiScale), GUILayout.Height(56f * uiScale)))
-                    {
-                        player.coinNum += dish.IngredientCost;
-                        player.SelectedDishes.Remove(dish.DishId);
-                        DataManager.Instance.SaveGame();
-                    }
-                }
-                else if (player.SelectedDishes.Count < player.MaxDishSlots)
-                {
-                    GUI.enabled = player.coinNum >= dish.IngredientCost;
-                    if (GUILayout.Button("选择", smallButtonStyle, GUILayout.Width(100f * uiScale), GUILayout.Height(56f * uiScale)))
-                    {
-                        player.coinNum -= dish.IngredientCost;
-                        player.SelectedDishes.Add(dish.DishId);
-                        DataManager.Instance.SaveGame();
-                    }
-
-                    GUI.enabled = true;
-                }
-
-                GUILayout.EndHorizontal();
-            }
-
-            GUILayout.EndScrollView();
         }
 
         private void DrawOperationPhase()
@@ -354,12 +251,6 @@ namespace JN.Client.Manager
             {
                 fontSize = Mathf.RoundToInt(28f * uiScale),
                 fontStyle = FontStyle.Bold,
-                wordWrap = true
-            };
-
-            smallButtonStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = Mathf.RoundToInt(22f * uiScale),
                 wordWrap = true
             };
 
