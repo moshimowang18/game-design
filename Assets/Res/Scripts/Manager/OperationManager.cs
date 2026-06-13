@@ -106,6 +106,12 @@ namespace JN.Client.Manager
                 saveData.tavern.availableDishes = totalStock;
                 Debug.Log($"[OpMgr] 营业开始,同步备菜库存到老系统: {totalStock}份");
 
+                var sceneMgr = Object.FindObjectOfType<TavernSceneManager>();
+                if (sceneMgr != null && totalStock > 0)
+                {
+                    sceneMgr.StagePreparedDishesFromStock(totalStock);
+                }
+
             }
 
 

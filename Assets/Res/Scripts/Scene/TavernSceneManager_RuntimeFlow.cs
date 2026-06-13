@@ -981,6 +981,19 @@ namespace JN.Client.Scene
         }
 
         /// <summary>
+        /// 营业开始时，将备菜库存摆到出餐台，与老系统 availableDishes 数量对齐。
+        /// </summary>
+        /// <param name="count">备菜份数。</param>
+        public void StagePreparedDishesFromStock(int count)
+        {
+            ClearPreparedDishQueue();
+            if (count > 0)
+            {
+                AddPreparedDishesToFoodTable(count);
+            }
+        }
+
+        /// <summary>
         /// 厨师完成做菜后，把餐盘与菜品摆到 FoodTable 上，供小二后续取餐。
         /// </summary>
         /// <param name="count">新增菜品数量。</param>
