@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using JN.Client.Manager;
 using JN.Client.Model;
 using JN.Client.UI;
+using QFramework;
 using UnityEngine;
 using UnityEngine.EventSystems;
 #if UNITY_EDITOR
@@ -77,6 +78,35 @@ namespace JN.Client.Scene
             EnsureBuildIndicatorCollider();
             EnsureSeatDecorations();
             ApplySaveState(DataManager.Instance.GetTableData(tableId));
+        }
+
+        private void OnEnable()
+        {
+            Signals.Get<TavernRuntimeChangedSignal>().AddListener(RefreshPurchasePromptVisibility);
+        }
+
+        private void OnDisable()
+        {
+            Signals.Get<TavernRuntimeChangedSignal>().RemoveListener(RefreshPurchasePromptVisibility);
+        }
+
+        /// <summary>
+        /// 根据日循环阶段刷新桌位购买提示（3D 底板 + 价格 UI）。
+        /// </summary>
+        private void RefreshPurchasePromptVisibility()
+        {
+            var tableData = DataManager.Instance.GetTableData(tableId);
+            var isUnlocked = tableData != null && tableData.isUnlocked;
+            var canPurchaseTable = DataManager.Instance.CanPurchaseGuideTables();
+            var canSpend = TavernDayManager.Instance == null || TavernDayManager.Instance.CanSpendMoney();
+            var showPurchase = !isUnlocked && canPurchaseTable && canSpend;
+
+            if (canBuildObj != null)
+            {
+                canBuildObj.SetActive(showPurchase);
+            }
+
+            linkedUI?.SetUnlockPrompt(showPurchase, UnlockCost);
         }
 
         /// <summary>
@@ -173,11 +203,7 @@ namespace JN.Client.Scene
         {
             linkedUI?.BindTable(this);
             var isUnlocked = tableData != null && tableData.isUnlocked;
-            var canPurchaseTable = DataManager.Instance.CanPurchaseGuideTables();
-            if (canBuildObj != null)
-            {
-                canBuildObj.SetActive(!isUnlocked && canPurchaseTable);
-            }
+            RefreshPurchasePromptVisibility();
 
             HideLegacyBuildSceneUi();
 
@@ -194,7 +220,6 @@ namespace JN.Client.Scene
 
             if (linkedUI != null)
             {
-                linkedUI.SetUnlockPrompt(!isUnlocked && canPurchaseTable, UnlockCost);
                 if (isUnlocked && tableData != null)
                 {
                     linkedUI.RefreshState((TavernTableRuntimeState)tableData.runtimeState);

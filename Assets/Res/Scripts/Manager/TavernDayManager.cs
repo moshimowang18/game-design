@@ -133,6 +133,7 @@ namespace JN.Client.Manager
             EnsureTavernClosedForDayCycle();
             SyncToSaveData();
             DataManager.Instance.SaveGame();
+            Signals.Get<TavernRuntimeChangedSignal>().Dispatch();
         }
 
         /// <summary>
@@ -146,6 +147,7 @@ namespace JN.Client.Manager
             currentDay.CurrentPhase = DayPhase.Preparation;
             SyncToSaveData();
             DataManager.Instance.SaveGame();
+            Signals.Get<TavernRuntimeChangedSignal>().Dispatch();
         }
 
         /// <summary>
@@ -159,6 +161,7 @@ namespace JN.Client.Manager
             OperationManager.Instance.StartOperation();
             SyncToSaveData();
             DataManager.Instance.SaveGame();
+            Signals.Get<TavernRuntimeChangedSignal>().Dispatch();
         }
 
         /// <summary>
@@ -197,6 +200,7 @@ namespace JN.Client.Manager
 
             SyncToSaveData();
             DataManager.Instance.SaveGame();
+            Signals.Get<TavernRuntimeChangedSignal>().Dispatch();
         }
 
         private void EnsureInitialized()

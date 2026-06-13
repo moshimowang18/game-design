@@ -38,6 +38,7 @@ namespace JN.Client.UI
         private TMP_Text customerEnterProgressText;
         private Sprite customerEnterDefaultFillSprite;
         private Sprite customerEnterQueueFillSprite;
+        private Button staffButton;
 
         /// <summary>
         /// 面板初始化时绑定控件和事件。
@@ -198,6 +199,19 @@ namespace JN.Client.UI
 
             txt_RuntimeInfo.text =
                 $"桌子 {DataManager.Instance.GetUnlockedTableCount()}/6 | 菜品 {tavernData.availableDishes} | 接待 {tavernData.totalServedCustomers}{queueText}";
+            RefreshStaffButtonVisibility();
+        }
+
+        /// <summary>
+        /// 营业/结算阶段隐藏招聘按钮，仅准备阶段显示。
+        /// </summary>
+        private void RefreshStaffButtonVisibility()
+        {
+            var canSpend = TavernDayManager.Instance == null || TavernDayManager.Instance.CanSpendMoney();
+            if (staffButton != null)
+            {
+                staffButton.gameObject.SetActive(canSpend);
+            }
         }
 
         /// <summary>
@@ -358,6 +372,8 @@ namespace JN.Client.UI
             BindBottomButton("btn_Facility", OnClickFacilityButton);
             BindBottomButton("btn_Town", OnClickTownButton);
             BindBottomButton("btn_Staff", OnClickStaffButton);
+            staffButton = bottomButtonRoot.Find("btn_Staff")?.GetComponent<Button>();
+            RefreshStaffButtonVisibility();
         }
 
         /// <summary>
