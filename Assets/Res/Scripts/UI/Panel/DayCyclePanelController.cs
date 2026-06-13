@@ -18,6 +18,19 @@ namespace JN.Client.UI
     public class DayCyclePanelController : QFrameworkPanel<DayCyclePanelControllerData>
     {
         private const int MaxKitchenLevel = 3;
+        private const float ContentPadLeft = 16f;
+        private const float ContentPadRight = 16f;
+        private const float ContentPadTop = 20f;
+        private const float ContentPadBottom = 16f;
+        private const float SectionSpacing = 12f;
+        private const float TitleHeight = 40f;
+        private const float EventSectionHeight = 140f;
+        private const float KitchenSectionHeight = 104f;
+        private const float DishHeaderHeight = 30f;
+        private const float DishRowHeight = 50f;
+        private const float DishRowSpacing = 4f;
+        private static readonly Vector2 PanelSize = new(500f, 800f);
+        private static readonly Vector2 PanelPosition = new(20f, 20f);
 
         private TextMeshProUGUI _txtTitle;
         private TextMeshProUGUI _txtDayLabel;
@@ -33,12 +46,24 @@ namespace JN.Client.UI
         private GameObject _dishItemTemplate;
         private readonly List<GameObject> _dishItems = new();
         private GameObject _groupContent;
+        private RectTransform _groupEventInfo;
+        private RectTransform _groupKitchenUpgrade;
+        private RectTransform _groupDishSelection;
+        private RectTransform _scrollDishList;
+        private int _lastDishListStateHash = int.MinValue;
+        private bool _wasShowingPrep;
+        private int _panelLayoutFrames;
         /// <summary>
         /// 面板初始化时绑定控件。
         /// </summary>
         protected override void OnPanelInit()
         {
+            ApplyPanelLayout();
             _groupContent = transform.Find("group_Content")?.gameObject;
+            _groupEventInfo = transform.Find("group_Content/group_EventInfo") as RectTransform;
+            _groupKitchenUpgrade = transform.Find("group_Content/group_KitchenUpgrade") as RectTransform;
+            _groupDishSelection = transform.Find("group_Content/group_DishSelection") as RectTransform;
+            _scrollDishList = transform.Find("group_Content/group_DishSelection/scroll_DishList") as RectTransform;
             _txtTitle = transform.Find("group_Content/txt_Title")?.GetComponent<TextMeshProUGUI>();
             _txtDayLabel = transform.Find("group_Content/group_EventInfo/txt_DayLabel")?.GetComponent<TextMeshProUGUI>();
             _txtEventName = transform.Find("group_Content/group_EventInfo/txt_EventName")?.GetComponent<TextMeshProUGUI>();
@@ -71,6 +96,10 @@ namespace JN.Client.UI
                 _btnUpgradeKitchen.onClick.AddListener(OnClickUpgradeKitchen);
             }
 
+            DisableAutoLayout();
+            ApplyManualPanelLayout();
+            _panelLayoutFrames = 3;
+
             Debug.Log("[DayCyclePanel] OnPanelInit");
         }
 
@@ -80,7 +109,241 @@ namespace JN.Client.UI
         /// <param name="data">面板数据。</param>
         protected override void OnPanelOpen(DayCyclePanelControllerData data)
         {
+            ApplyPanelLayout();
+            _lastDishListStateHash = int.MinValue;
+            _panelLayoutFrames = 3;
+            ApplyManualPanelLayout();
             Debug.Log("[DayCyclePanel] OnPanelOpen");
+        }
+
+        protected override void OnPanelShow()
+        {
+            ApplyPanelLayout();
+            _panelLayoutFrames = 2;
+            ApplyManualPanelLayout();
+        }
+
+        /// <summary>
+        /// UIKit 打开面板时会强制全屏拉伸，这里恢复为左侧固定尺寸（与 IMGUI 一致）。
+        /// </summary>
+        private void ApplyPanelLayout()
+        {
+            var rect = transform as RectTransform;
+            if (rect == null)
+            {
+                return;
+            }
+
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.zero;
+            rect.pivot = Vector2.zero;
+            rect.anchoredPosition = PanelPosition;
+            rect.sizeDelta = PanelSize;
+        }
+
+        private void DisableAutoLayout()
+        {
+            DisableLayoutOn(_groupContent);
+            DisableLayoutOn(_groupEventInfo?.gameObject);
+            DisableLayoutOn(_groupKitchenUpgrade?.gameObject);
+            DisableLayoutOn(_groupDishSelection?.gameObject);
+            DisableLayoutOn(_dishListContent?.gameObject);
+
+            if (_dishItemTemplate != null)
+            {
+                DisableLayoutOn(_dishItemTemplate);
+            }
+        }
+
+        private static void DisableLayoutOn(GameObject go)
+        {
+            if (go == null)
+            {
+                return;
+            }
+
+            foreach (var layout in go.GetComponents<LayoutGroup>())
+            {
+                layout.enabled = false;
+            }
+
+            foreach (var fitter in go.GetComponents<ContentSizeFitter>())
+            {
+                fitter.enabled = false;
+            }
+        }
+
+        private void ApplyManualPanelLayout()
+        {
+            if (_groupContent == null)
+            {
+                return;
+            }
+
+            var contentRect = _groupContent.transform as RectTransform;
+            if (contentRect != null)
+            {
+                contentRect.anchorMin = Vector2.zero;
+                contentRect.anchorMax = Vector2.one;
+                contentRect.pivot = new Vector2(0.5f, 0.5f);
+                contentRect.offsetMin = Vector2.zero;
+                contentRect.offsetMax = Vector2.zero;
+            }
+
+            var y = ContentPadTop;
+
+            if (_txtTitle != null)
+            {
+                PlaceTopBand(_txtTitle.rectTransform, y, TitleHeight);
+                y += TitleHeight + SectionSpacing;
+            }
+
+            if (_groupEventInfo != null)
+            {
+                PlaceTopBand(_groupEventInfo, y, EventSectionHeight);
+                LayoutEventInfoSection();
+                y += EventSectionHeight + SectionSpacing;
+            }
+
+            if (_groupKitchenUpgrade != null)
+            {
+                PlaceTopBand(_groupKitchenUpgrade, y, KitchenSectionHeight);
+                LayoutKitchenSection();
+                y += KitchenSectionHeight + SectionSpacing;
+            }
+
+            if (_groupDishSelection != null)
+            {
+                var dishSectionHeight = PanelSize.y - y - ContentPadBottom;
+                PlaceTopBand(_groupDishSelection, y, dishSectionHeight);
+                LayoutDishSelectionSection(dishSectionHeight);
+            }
+        }
+
+        private void LayoutEventInfoSection()
+        {
+            const float lineHeight = 28f;
+            const float lineSpacing = 8f;
+            var lineY = 0f;
+            PlaceTopBand(_txtDayLabel?.rectTransform, lineY, lineHeight, 0f, 0f, _groupEventInfo);
+            lineY += lineHeight + lineSpacing;
+            PlaceTopBand(_txtEventName?.rectTransform, lineY, lineHeight, 0f, 0f, _groupEventInfo);
+            lineY += lineHeight + lineSpacing;
+            PlaceTopBand(_txtEventHint?.rectTransform, lineY, lineHeight, 0f, 0f, _groupEventInfo);
+            lineY += lineHeight + lineSpacing;
+            PlaceTopBand(_txtFlowMultiplier?.rectTransform, lineY, lineHeight, 0f, 0f, _groupEventInfo);
+        }
+
+        private void LayoutKitchenSection()
+        {
+            const float levelHeight = 28f;
+            const float costHeight = 24f;
+            const float buttonHeight = 36f;
+            const float lineSpacing = 8f;
+            PlaceTopBand(_txtKitchenLevel?.rectTransform, 0f, levelHeight, 0f, 0f, _groupKitchenUpgrade);
+            PlaceTopBand(_txtKitchenCost?.rectTransform, levelHeight + lineSpacing, costHeight, 0f, 0f, _groupKitchenUpgrade);
+            PlaceTopBand(_btnUpgradeKitchen?.transform as RectTransform, levelHeight + lineSpacing + costHeight + lineSpacing, buttonHeight, 0f, 0f, _groupKitchenUpgrade);
+        }
+
+        private void LayoutDishSelectionSection(float sectionHeight)
+        {
+            PlaceTopBand(_txtDishHeader?.rectTransform, 0f, DishHeaderHeight, 0f, 0f, _groupDishSelection);
+
+            if (_scrollDishList == null)
+            {
+                return;
+            }
+
+            var scrollTop = DishHeaderHeight + SectionSpacing;
+            var scrollHeight = Mathf.Max(0f, sectionHeight - scrollTop);
+            PlaceTopBand(_scrollDishList, scrollTop, scrollHeight, 0f, 0f, _groupDishSelection);
+
+            var viewport = _scrollDishList.Find("Viewport") as RectTransform;
+            if (viewport != null)
+            {
+                viewport.anchorMin = Vector2.zero;
+                viewport.anchorMax = Vector2.one;
+                viewport.offsetMin = Vector2.zero;
+                viewport.offsetMax = new Vector2(-12f, 0f);
+            }
+
+            if (_dishListContent is RectTransform contentRect)
+            {
+                var contentHeight = _dishItems.Count * (DishRowHeight + DishRowSpacing);
+                contentRect.anchorMin = new Vector2(0f, 1f);
+                contentRect.anchorMax = new Vector2(1f, 1f);
+                contentRect.pivot = new Vector2(0.5f, 1f);
+                contentRect.anchoredPosition = Vector2.zero;
+                contentRect.sizeDelta = new Vector2(0f, Mathf.Max(contentHeight, scrollHeight));
+            }
+        }
+
+        private static void PlaceTopBand(
+            RectTransform rect,
+            float yFromTop,
+            float height,
+            float padLeft = ContentPadLeft,
+            float padRight = ContentPadRight,
+            RectTransform parent = null)
+        {
+            if (rect == null)
+            {
+                return;
+            }
+
+            if (parent != null && rect.parent != parent)
+            {
+                return;
+            }
+
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, -yFromTop);
+            rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
+            rect.offsetMin = new Vector2(padLeft, rect.offsetMin.y);
+            rect.offsetMax = new Vector2(-padRight, rect.offsetMax.y);
+        }
+
+        private static void LayoutDishItemRow(RectTransform row, float yFromTop)
+        {
+            row.anchorMin = new Vector2(0f, 1f);
+            row.anchorMax = new Vector2(1f, 1f);
+            row.pivot = new Vector2(0.5f, 1f);
+            row.anchoredPosition = new Vector2(0f, -yFromTop);
+            row.sizeDelta = new Vector2(0f, DishRowHeight);
+
+            PlaceChildBand(row.Find("txt_DishName") as RectTransform, 0f, 110f, 0f);
+            PlaceChildBand(row.Find("txt_DishCost") as RectTransform, 116f, 150f, 0f);
+            PlaceChildBand(row.Find("txt_DishStatus") as RectTransform, 272f, 56f, 0f);
+            PlaceChildBand(row.Find("btn_Action") as RectTransform, 0f, 72f, 1f);
+        }
+
+        private static void PlaceChildBand(RectTransform rect, float x, float width, float anchorX)
+        {
+            if (rect == null)
+            {
+                return;
+            }
+
+            rect.anchorMin = new Vector2(anchorX, 0f);
+            rect.anchorMax = new Vector2(anchorX, 1f);
+            rect.pivot = new Vector2(anchorX, 0.5f);
+            rect.anchoredPosition = new Vector2(anchorX > 0.5f ? -x : x, 0f);
+            rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+            rect.offsetMin = new Vector2(rect.offsetMin.x, 0f);
+            rect.offsetMax = new Vector2(rect.offsetMax.x, 0f);
+        }
+
+        private void LateUpdate()
+        {
+            if (_panelLayoutFrames <= 0)
+            {
+                return;
+            }
+
+            ApplyPanelLayout();
+            _panelLayoutFrames--;
         }
 
         /// <summary>
@@ -106,11 +369,24 @@ namespace JN.Client.UI
             if (_groupContent != null && _groupContent.activeSelf != showInPrep)
             {
                 _groupContent.SetActive(showInPrep);
+                if (showInPrep)
+                {
+                    _lastDishListStateHash = int.MinValue;
+                    ApplyManualPanelLayout();
+                }
             }
 
             if (!showInPrep)
             {
+                _wasShowingPrep = false;
                 return;
+            }
+
+            if (!_wasShowingPrep)
+            {
+                _wasShowingPrep = true;
+                _lastDishListStateHash = int.MinValue;
+                ApplyManualPanelLayout();
             }
 
             RefreshPreparationContent();
@@ -168,7 +444,47 @@ namespace JN.Client.UI
             }
 
             RefreshKitchenUpgrade();
-            RefreshDishList();
+
+            var dishHash = ComputeDishListStateHash();
+            if (dishHash != _lastDishListStateHash)
+            {
+                _lastDishListStateHash = dishHash;
+                RefreshDishList();
+            }
+            else if (_txtDishHeader != null)
+            {
+                var player = DataManager.Instance.PlayerData;
+                if (player != null)
+                {
+                    _txtDishHeader.text = $"明日菜品 ({player.SelectedDishes.Count}/{player.MaxDishSlots}槽位)";
+                }
+            }
+        }
+
+        private int ComputeDishListStateHash()
+        {
+            var player = DataManager.Instance.PlayerData;
+            if (player == null)
+            {
+                return 0;
+            }
+
+            unchecked
+            {
+                var hash = 17;
+                hash = (hash * 31) + player.MaxDishSlots;
+                foreach (var dishId in player.UnlockedDishes)
+                {
+                    hash = (hash * 31) + (dishId?.GetHashCode() ?? 0);
+                }
+
+                foreach (var dishId in player.SelectedDishes)
+                {
+                    hash = (hash * 31) + (dishId?.GetHashCode() ?? 0);
+                }
+
+                return hash;
+            }
         }
 
         private void RefreshKitchenUpgrade()
@@ -314,11 +630,95 @@ namespace JN.Client.UI
 
                 if (btnAction != null)
                 {
-                    btnAction.interactable = false;
+                    bool canClick;
+                    if (isSelected)
+                    {
+                        canClick = true;
+                    }
+                    else
+                    {
+                        canClick = player.SelectedDishes.Count < player.MaxDishSlots
+                                   && player.coinNum >= dish.IngredientCost;
+                    }
+
+                    btnAction.interactable = canClick;
+
+                    var capturedDishId = dish.DishId;
+                    var capturedIsSelected = isSelected;
+                    btnAction.onClick.RemoveAllListeners();
+                    btnAction.onClick.AddListener(() => OnClickDishAction(capturedDishId, capturedIsSelected));
                 }
 
                 _dishItems.Add(go);
             }
+
+            for (var i = 0; i < _dishItems.Count; i++)
+            {
+                if (_dishItems[i] != null && _dishItems[i].transform is RectTransform rowRect)
+                {
+                    LayoutDishItemRow(rowRect, i * (DishRowHeight + DishRowSpacing));
+                }
+            }
+
+            ApplyManualPanelLayout();
+            _lastDishListStateHash = ComputeDishListStateHash();
+        }
+
+        private void OnClickDishAction(string dishId, bool currentlySelected)
+        {
+            var player = DataManager.Instance.PlayerData;
+            if (player == null)
+            {
+                return;
+            }
+
+            DishData dish = null;
+            var allDishes = EventSystemManager.Instance?.GetAllDishes();
+            if (allDishes != null)
+            {
+                foreach (var d in allDishes)
+                {
+                    if (d != null && d.DishId == dishId)
+                    {
+                        dish = d;
+                        break;
+                    }
+                }
+            }
+
+            if (dish == null)
+            {
+                return;
+            }
+
+            if (currentlySelected)
+            {
+                player.coinNum += dish.IngredientCost;
+                player.SelectedDishes.Remove(dishId);
+                DataManager.Instance.SaveGame();
+                Debug.Log($"[DayCyclePanel] 取消菜品: {dishId}");
+            }
+            else
+            {
+                if (player.SelectedDishes.Count >= player.MaxDishSlots)
+                {
+                    Debug.Log("[DayCyclePanel] 槽位已满");
+                    return;
+                }
+
+                if (player.coinNum < dish.IngredientCost)
+                {
+                    Debug.Log($"[DayCyclePanel] 钱不够: 需要{dish.IngredientCost}, 当前{player.coinNum}");
+                    return;
+                }
+
+                player.coinNum -= dish.IngredientCost;
+                player.SelectedDishes.Add(dishId);
+                DataManager.Instance.SaveGame();
+                Debug.Log($"[DayCyclePanel] 选择菜品: {dishId}, 扣费{dish.IngredientCost}");
+            }
+
+            RefreshDishList();
         }
     }
 }
