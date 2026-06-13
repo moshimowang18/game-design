@@ -92,6 +92,7 @@ namespace JN.Client.Manager
         private void OnGameplayGuideProgress()
         {
             SyncEmployeesFromOldSystem();
+            BindEmployeeVisuals();
         }
 
         /// <summary>
@@ -148,6 +149,67 @@ namespace JN.Client.Manager
             }
 
             return count;
+        }
+
+        /// <summary>
+        /// 建立每个 EmployeeData 与场景中 3D 小二 GameObject 的索引映射。
+        /// 调用时机：营业开始时、招聘成功后。
+        /// </summary>
+        public void BindEmployeeVisuals()
+        {
+            var player = DataManager.Instance.PlayerData;
+            if (player == null || player.Employees == null)
+            {
+                return;
+            }
+
+            var sceneMgr = Object.FindObjectOfType<TavernSceneManager>();
+            if (sceneMgr == null)
+            {
+                Debug.LogWarning("[Employee] BindEmployeeVisuals: TavernSceneManager 未找到");
+                return;
+            }
+
+            var visuals = sceneMgr.GetWaiterVisualsPublic();
+            if (visuals == null)
+            {
+                Debug.LogWarning("[Employee] BindEmployeeVisuals: 获取小二 visuals 失败");
+                return;
+            }
+
+            var boundCount = 0;
+            for (var i = 0; i < player.Employees.Count; i++)
+            {
+                if (i < visuals.Length)
+                {
+                    player.Employees[i].VisualGO = visuals[i];
+                    boundCount++;
+                }
+                else
+                {
+                    player.Employees[i].VisualGO = null;
+                }
+            }
+
+            Debug.Log($"[Employee] 绑定3D映射: {boundCount}/{player.Employees.Count}");
+        }
+
+        /// <summary>
+        /// 获取员工对应的 3D GameObject，如果没绑定返回 null。
+        /// </summary>
+        public GameObject GetEmployeeVisual(EmployeeData emp)
+        {
+            if (emp == null || emp.VisualGO == null)
+            {
+                return null;
+            }
+
+            if (!emp.VisualGO)
+            {
+                return null;
+            }
+
+            return emp.VisualGO;
         }
 
 
@@ -283,6 +345,7 @@ namespace JN.Client.Manager
             _currentRevenue = 0f;
 
             SyncEmployeesFromOldSystem();
+            BindEmployeeVisuals();
         }
 
 

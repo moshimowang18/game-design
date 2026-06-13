@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 namespace JN.Client.Model
 {
@@ -12,6 +13,12 @@ namespace JN.Client.Model
         public int Stamina = 3;
         public bool IsResting;
         public bool KickedFromRest;
+
+        /// <summary>
+        /// 关联的 3D 小二 GameObject（运行时建立，不参与序列化）。
+        /// </summary>
+        [NonSerialized]
+        public GameObject VisualGO;
 
         public EmployeeData()
         {

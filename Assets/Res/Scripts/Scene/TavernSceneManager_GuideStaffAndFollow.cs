@@ -39,6 +39,15 @@ namespace JN.Client.Scene
         }
 
         /// <summary>
+        /// 公开接口：获取场景中所有小二（Waiter）的 3D GameObject 列表，按生成顺序。
+        /// 供新系统建立 EmployeeData ↔ 3D 模型映射。
+        /// </summary>
+        public GameObject[] GetWaiterVisualsPublic()
+        {
+            return GetGuideStaffVisuals(GuideWaiterVisualKey);
+        }
+
+        /// <summary>
         /// 追加创建一个新的员工引导表现，并记录到分组里。
         /// </summary>
         /// <param name="visualKey">员工表现键。</param>
